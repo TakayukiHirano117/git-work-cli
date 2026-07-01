@@ -10,29 +10,35 @@ go install ./cmd/gitwork
 
 ## Config
 
-設定はOS標準のユーザー設定ディレクトリ配下の `gitwork/config.json` から読みます。macOSでは通常 `~/Library/Application Support/gitwork/config.json` です。
+設定は `.env` のみです。macOS では通常 `~/Library/Application Support/gitwork/.env` です。
 
-```json
-{
-  "backlogSpaceUrl": "https://example.backlog.com",
-  "backlogApiKey": "your-api-key",
-  "backlogDoneStatusId": 5,
-  "githubRepo": "owner/repo",
-  "defaultBase": "develop",
-  "branchPattern": "feature/member/backend/{issueKey}",
-  "projectKey": "COMMUNITY"
-}
+```env
+BACKLOG_SPACE_URL=https://example.backlog.com
+BACKLOG_API_KEY=your-api-key
+BACKLOG_DONE_STATUS_ID=5
+GITHUB_REPO=owner/repo
+GITWORK_DEFAULT_BASE=develop
+GITWORK_BRANCH_PATTERN=feature/{issueKey}
+GITWORK_PROJECT_KEY=COMMUNITY
 ```
 
-`backlogApiKey` などは環境変数でも上書きできます。
+`.env` は起動時に自動読み込みされます。既にシェルに設定済みの環境変数は上書きしません。
 
-- `BACKLOG_SPACE_URL`
-- `BACKLOG_API_KEY`
-- `BACKLOG_DONE_STATUS_ID`
-- `GITHUB_REPO`
-- `GITWORK_DEFAULT_BASE`
-- `GITWORK_BRANCH_PATTERN`
-- `GITWORK_PROJECT_KEY`
+任意の `.env` を使う場合:
+
+```sh
+export GITWORK_ENV_FILE=/path/to/.env
+```
+
+`GITWORK_BRANCH_PATTERN` の `{issueKey}` は課題キー（小文字）に置換されます。  
+`member` や `backend` はコード固定ではなく、README やテストに載っていた例です。  
+自分の命名規則に合わせて `.env` で自由に変えられます。
+
+例:
+
+```env
+GITWORK_BRANCH_PATTERN=feature/member/backend/{issueKey}
+```
 
 ## Commands
 

@@ -24,8 +24,8 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
   work <issue-key>
     課題キーから作業用ブランチを作成します。
     ・今いるブランチを「親」として記録
-    ・config.json の branchPattern に従い子ブランチを作成
-      （例: feature/member/backend/community-102）
+    ・.env の GITWORK_BRANCH_PATTERN に従い子ブランチを作成
+      （例: feature/community-102）
     ・親子関係を tree.json に保存（today / epic で後から参照）
     例: gitwork work COMMUNITY-102
 
@@ -63,11 +63,11 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
   5. gitwork today                # 残りの子タスクを確認
 
 設定ファイル (macOS):
-  ~/Library/Application Support/gitwork/config.json
+  ~/Library/Application Support/gitwork/.env
 
-環境変数（config.json を上書き）:
-  BACKLOG_SPACE_URL, BACKLOG_API_KEY, BACKLOG_DONE_STATUS_ID
-  GITHUB_REPO, GITWORK_DEFAULT_BASE, GITWORK_BRANCH_PATTERN, GITWORK_PROJECT_KEY
+環境変数:
+  BACKLOG_SPACE_URL, BACKLOG_API_KEY, BACKLOG_DONE_STATUS_ID, GITHUB_REPO
+  GITWORK_DEFAULT_BASE, GITWORK_BRANCH_PATTERN, GITWORK_PROJECT_KEY
 
 詳細ヘルプ:
   gitwork help <command>`)
@@ -87,18 +87,18 @@ func (a App) printCommandHelp(command string) {
 
 動作:
   1. 現在のブランチ名を「親」として記録
-  2. branchPattern の {issueKey} を課題キー（小文字）に置換してブランチ名を生成
+  2. GITWORK_BRANCH_PATTERN の {issueKey} を課題キー（小文字）に置換してブランチ名を生成
   3. git switch -c で子ブランチを作成
   4. 親子関係・課題キーを tree.json に保存
 
 前提:
   ・Git リポジトリ内で実行すること
-  ・config.json に branchPattern を設定しておくこと
+  ・.env に GITWORK_BRANCH_PATTERN を設定しておくこと
     （未設定時は feature/{issueKey}）
 
 例:
   gitwork work COMMUNITY-102
-  → feature/member/backend/community-102 を作成（設定による）`)
+  → feature/community-102 を作成（設定による）`)
 	case "pr":
 		fmt.Fprintln(a.Stdout, `コマンド: pr
 
@@ -124,7 +124,7 @@ func (a App) printCommandHelp(command string) {
 前提:
   ・ブランチ名に課題キー（COMMUNITY-102 形式）が含まれていること
   ・gh（GitHub CLI）がインストール・認証済みであること
-  ・config.json に Backlog API 設定と backlogDoneStatusId が設定されていること
+  ・.env に Backlog API 設定と BACKLOG_DONE_STATUS_ID が設定されていること
 
 例:
   gitwork pr
@@ -147,7 +147,7 @@ func (a App) printCommandHelp(command string) {
 
 表示例:
   Current branch
-  feature/member/backend/community-101
+  feature/community-101
 
   Children
   - COMMUNITY-102  API利用画面を実装  対応中

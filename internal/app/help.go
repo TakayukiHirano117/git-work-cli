@@ -24,8 +24,9 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
   work <issue-key>
     課題キーから作業用ブランチを作成します。
     ・今いるブランチを「親」として記録
-    ・.env の GITWORK_BRANCH_PATTERN に従い子ブランチを作成
-      （例: feature/community-102）
+    ・team / layer を対話選択（member/admin/agency, frontend/backend）
+    ・feature/<team>/<layer>/<ISSUE-KEY> 形式で子ブランチを作成
+      （例: feature/member/backend/COMMUNITY-100）
     ・親子関係を tree.json に保存（today / epic で後から参照）
     例: gitwork work COMMUNITY-102
 
@@ -45,11 +46,13 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・エピックブランチにいるとき、配下の作業状況を確認する用途
     例: gitwork today
 
-  epic status <epic-key>
+  epic status [epic-key]
     エピック配下のブランチ・課題を一覧表示します。
+    ・epic-key 省略時は現在ブランチの課題キーを epic として使う
     ・課題キーのプレフィックス（例: COMMUNITY-100 → COMMUNITY）で絞り込み
     ・エピック全体の進捗を俯瞰する用途
     例: gitwork epic status COMMUNITY-100
+    例: gitwork epic status
 
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
@@ -67,7 +70,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
 
 環境変数:
   BACKLOG_SPACE_URL, BACKLOG_API_KEY, BACKLOG_DONE_STATUS_ID, GITHUB_REPO
-  GITWORK_DEFAULT_BASE, GITWORK_BRANCH_PATTERN, GITWORK_PROJECT_KEY
+  GITWORK_DEFAULT_BASE, GITWORK_PROJECT_KEY
 
 詳細ヘルプ:
   gitwork help <command>`)
@@ -79,7 +82,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: work
 
 使い方:
-  gitwork work <issue-key>
+  gitwork work <issue-key> [--team member|admin|agency] [--layer frontend|backend]
 
 説明:
   現在 checkout しているブランチを親として、課題キーから子ブランチを作成します。
@@ -87,18 +90,17 @@ func (a App) printCommandHelp(command string) {
 
 動作:
   1. 現在のブランチ名を「親」として記録
-  2. GITWORK_BRANCH_PATTERN の {issueKey} を課題キー（小文字）に置換してブランチ名を生成
-  3. git switch -c で子ブランチを作成
-  4. 親子関係・課題キーを tree.json に保存
+  2. team / layer を選択（--team / --layer 省略時は対話選択）
+  3. feature/<team>/<layer>/<ISSUE-KEY> のブランチ名を生成
+  4. git switch -c で子ブランチを作成
+  5. 親子関係・課題キーを tree.json に保存
 
 前提:
   ・Git リポジトリ内で実行すること
-  ・.env に GITWORK_BRANCH_PATTERN を設定しておくこと
-    （未設定時は feature/{issueKey}）
 
 例:
   gitwork work COMMUNITY-102
-  → feature/community-102 を作成（設定による）`)
+  → feature/member/backend/COMMUNITY-102 を作成（選択内容による）`)
 	case "pr":
 		fmt.Fprintln(a.Stdout, `コマンド: pr
 
@@ -163,16 +165,18 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 
 使い方:
-  gitwork epic status <epic-key>
+  gitwork epic status [epic-key]
 
 説明:
   指定したエピック配下のブランチ・課題を一覧表示します。
+  epic-key を省略した場合は、現在のブランチ名から課題キーを取得して epic として使います。
   エピック全体の進捗を俯瞰するときに使います。
 
 動作:
-  1. エピックキーのプレフィックス（COMMUNITY-100 → COMMUNITY）で絞り込み
-  2. 同じリポジトリ内の該当課題キーを tree.json から検索
-  3. 各課題の Backlog タイトル・ステータスを表示
+  1. epic-key 省略時は現在ブランチから課題キーを取得
+  2. エピックキーのプレフィックス（COMMUNITY-100 → COMMUNITY）で絞り込み
+  3. 同じリポジトリ内の該当課題キーを tree.json から検索
+  4. 各課題の Backlog タイトル・ステータスを表示
 
 表示例:
   Epic COMMUNITY-100
@@ -182,7 +186,8 @@ func (a App) printCommandHelp(command string) {
   - COMMUNITY-103  テストを書く        未着手
 
 例:
-  gitwork epic status COMMUNITY-100`)
+  gitwork epic status COMMUNITY-100
+  gitwork epic status`)
 	case "help":
 		a.printGeneralHelp()
 	default:

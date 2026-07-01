@@ -26,17 +26,16 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 		Stdin:  strings.NewReader(""),
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
-		Config: config.Config{BranchPattern: "feature/member/backend/{issueKey}"},
 		Store:  st,
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
 			command := name + " " + strings.Join(args, " ")
 			commands = append(commands, command)
 			switch command {
 			case "git branch --show-current":
-				return "feature/member/backend/community-101", nil
+				return "feature/member/backend/COMMUNITY-101", nil
 			case "git rev-parse --show-toplevel":
 				return "/repo", nil
-			case "git switch -c feature/member/backend/community-102":
+			case "git switch -c feature/member/backend/COMMUNITY-102":
 				return "", nil
 			default:
 				t.Fatalf("unexpected command: %s", command)
@@ -45,7 +44,7 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 		}},
 	}
 
-	if err := app.Run(context.Background(), []string{"work", "community-102"}); err != nil {
+	if err := app.Run(context.Background(), []string{"work", "community-102", "--team", "member", "--layer", "backend"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -57,14 +56,52 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 		t.Fatalf("expected 1 record, got %d", len(tree.Records))
 	}
 	record := tree.Records[0]
-	if record.ParentBranch != "feature/member/backend/community-101" {
+	if record.ParentBranch != "feature/member/backend/COMMUNITY-101" {
 		t.Fatalf("unexpected parent branch: %s", record.ParentBranch)
 	}
-	if record.ChildBranch != "feature/member/backend/community-102" {
+	if record.ChildBranch != "feature/member/backend/COMMUNITY-102" {
 		t.Fatalf("unexpected child branch: %s", record.ChildBranch)
 	}
 	if len(commands) != 3 {
 		t.Fatalf("expected 3 git commands, got %d", len(commands))
+	}
+}
+
+func TestWorkPromptsForTeamAndLayer(t *testing.T) {
+	t.Parallel()
+
+	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	app := App{
+		Stdin:  strings.NewReader("2\n1\n"),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			case "git switch -c feature/admin/frontend/COMMUNITY-200":
+				return "", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	if err := app.Run(context.Background(), []string{"work", "COMMUNITY-200"}); err != nil {
+		t.Fatal(err)
+	}
+
+	tree, err := st.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tree.Records[0].ChildBranch != "feature/admin/frontend/COMMUNITY-200" {
+		t.Fatalf("unexpected child branch: %s", tree.Records[0].ChildBranch)
 	}
 }
 
@@ -118,8 +155,8 @@ func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 			commands = append(commands, command)
 			switch {
 			case command == "git branch --show-current":
-				return "feature/member/backend/community-102", nil
-			case command == "git push -u origin feature/member/backend/community-102":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case command == "git push -u origin feature/member/backend/COMMUNITY-102":
 				return "", nil
 			case strings.HasPrefix(command, "gh pr create "):
 				return "https://github.com/example/repo/pull/1", nil
@@ -166,8 +203,8 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	st := store.New(treePath)
 	if err := st.Save(store.Tree{Records: []store.Record{{
 		RepoRoot:     "/repo",
-		ParentBranch: "feature/member/backend/community-102",
-		ChildBranch:  "feature/member/backend/community-103",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
 		IssueKey:     "COMMUNITY-103",
 	}}}); err != nil {
 		t.Fatal(err)
@@ -184,7 +221,7 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 			command := name + " " + strings.Join(args, " ")
 			switch command {
 			case "git branch --show-current":
-				return "feature/member/backend/community-102", nil
+				return "feature/member/backend/COMMUNITY-102", nil
 			case "git rev-parse --show-toplevel":
 				return "/repo", nil
 			default:
@@ -246,12 +283,58 @@ func TestHelpPrintsSubcommandUsage(t *testing.T) {
 func TestIssueKeyFromBranch(t *testing.T) {
 	t.Parallel()
 
-	issueKey, err := issueKeyFromBranch("feature/member/backend/community-102")
+	issueKey, err := issueKeyFromBranch("feature/member/backend/COMMUNITY-102")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if issueKey != "COMMUNITY-102" {
 		t.Fatalf("unexpected issue key: %s", issueKey)
+	}
+}
+
+func TestEpicStatusUsesCurrentBranchWhenEpicKeyIsMissing(t *testing.T) {
+	t.Parallel()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "develop",
+		ChildBranch:  "feature/member/backend/COMMUNITY-101",
+		IssueKey:     "COMMUNITY-101",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:    strings.NewReader(""),
+		Stdout:   out,
+		Stderr:   &bytes.Buffer{},
+		Store:    st,
+		loadDeps: false,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-100", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	if err := app.Run(context.Background(), []string{"epic", "status"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Epic COMMUNITY-100") {
+		t.Fatalf("unexpected output: %s", out.String())
+	}
+	if !strings.Contains(out.String(), "COMMUNITY-101") {
+		t.Fatalf("expected epic child in output: %s", out.String())
 	}
 }
 

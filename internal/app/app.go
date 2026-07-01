@@ -100,11 +100,12 @@ func (a App) withDeps() (App, error) {
 }
 
 func (a App) runWork(ctx context.Context, args []string) error {
-	if len(args) != 1 {
-		return errors.New("usage: gitwork work <issue-key>")
+	issueKeyArg, teamFlag, layerFlag, err := parseWorkArgs(args)
+	if err != nil {
+		return err
 	}
 
-	issueKey := strings.ToUpper(args[0])
+	issueKey := strings.ToUpper(issueKeyArg)
 	parentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
@@ -114,7 +115,17 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		return err
 	}
 
-	childBranch := branchName(a.Config.BranchPattern, issueKey)
+	reader := bufio.NewReader(a.Stdin)
+	team, err := resolveWorkTeamChoice(teamFlag, reader, a.Stdout)
+	if err != nil {
+		return err
+	}
+	layer, err := resolveWorkLayerChoice(layerFlag, reader, a.Stdout)
+	if err != nil {
+		return err
+	}
+
+	childBranch := workBranchName(team, layer, issueKey)
 	if err := a.Git.CreateBranch(ctx, childBranch); err != nil {
 		return err
 	}
@@ -208,8 +219,13 @@ func (a App) runToday(ctx context.Context, args []string) error {
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
-	if len(args) != 2 || args[0] != "status" {
-		return errors.New("usage: gitwork epic status <epic-key>")
+	if len(args) == 0 || args[0] != "status" {
+		return errors.New("usage: gitwork epic status [epic-key]")
+	}
+
+	epicKey, err := a.resolveEpicKey(ctx, args[1:])
+	if err != nil {
+		return err
 	}
 
 	repoRoot, err := a.Git.RepoRoot(ctx)
@@ -221,8 +237,28 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 		return err
 	}
 
-	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(args[1]))
-	return a.printRecords(ctx, tree.ForEpic(repoRoot, args[1]))
+	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
+	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey))
+}
+
+func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
+	if len(args) == 1 {
+		return strings.ToUpper(args[0]), nil
+	}
+	if len(args) > 1 {
+		return "", errors.New("usage: gitwork epic status [epic-key]")
+	}
+
+	currentBranch, err := a.Git.CurrentBranch(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	epicKey, err := issueKeyFromBranch(currentBranch)
+	if err != nil {
+		return "", errors.New("usage: gitwork epic status [epic-key]")
+	}
+	return epicKey, nil
 }
 
 func (a App) printRecordsForCurrentBranch(ctx context.Context) error {
@@ -276,12 +312,6 @@ func (a App) confirm(question string) (bool, error) {
 	return answer == "y" || answer == "yes", nil
 }
 
-func branchName(pattern string, issueKey string) string {
-	if pattern == "" {
-		pattern = "feature/{issueKey}"
-	}
-	return strings.ReplaceAll(pattern, "{issueKey}", strings.ToLower(issueKey))
-}
 
 func issueKeyFromBranch(branch string) (string, error) {
 	re := regexp.MustCompile(`[A-Za-z]+-\d+`)

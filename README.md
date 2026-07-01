@@ -18,7 +18,6 @@ BACKLOG_API_KEY=your-api-key
 BACKLOG_DONE_STATUS_ID=5
 GITHUB_REPO=owner/repo
 GITWORK_DEFAULT_BASE=develop
-GITWORK_BRANCH_PATTERN=feature/{issueKey}
 GITWORK_PROJECT_KEY=COMMUNITY
 ```
 
@@ -30,23 +29,37 @@ GITWORK_PROJECT_KEY=COMMUNITY
 export GITWORK_ENV_FILE=/path/to/.env
 ```
 
-`GITWORK_BRANCH_PATTERN` の `{issueKey}` は課題キー（小文字）に置換されます。  
-`member` や `backend` はコード固定ではなく、README やテストに載っていた例です。  
-自分の命名規則に合わせて `.env` で自由に変えられます。
-
-例:
-
-```env
-GITWORK_BRANCH_PATTERN=feature/member/backend/{issueKey}
-```
-
 ## Commands
 
 ```sh
 gitwork work COMMUNITY-102
 gitwork pr
 gitwork today
+gitwork epic status
 gitwork epic status COMMUNITY-100
+```
+
+### work
+
+`gw COMMUNITY-102` 実行時に team / layer を選択します。
+
+- team: `member`, `admin`, `agency`
+- layer: `frontend`, `backend`
+
+生成例: `feature/member/backend/COMMUNITY-102`
+
+非対話で指定する場合:
+
+```sh
+gitwork work COMMUNITY-102 --team member --layer backend
+```
+
+### epic status
+
+epic キーを省略すると、現在のブランチ名から課題キーを取得して epic として使います。
+
+```sh
+gitwork epic status
 ```
 
 日常利用はaliasで短くできます。

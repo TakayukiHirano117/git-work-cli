@@ -204,6 +204,45 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	}
 }
 
+func TestHelpPrintsGeneralUsage(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"help"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	for _, want := range []string{
+		"work <issue-key>",
+		"課題キーから作業用ブランチを作成",
+		"Pull Request を作成",
+		"今日見るべき子タスク",
+		"epic status",
+		"よくある流れ",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected help to contain %q, got %q", want, output)
+		}
+	}
+}
+
+func TestHelpPrintsSubcommandUsage(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"help", "pr"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	if !strings.Contains(output, "--dry-run") || !strings.Contains(output, "--yes") {
+		t.Fatalf("expected pr help flags, got %q", output)
+	}
+}
+
 func TestIssueKeyFromBranch(t *testing.T) {
 	t.Parallel()
 

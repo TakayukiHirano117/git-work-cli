@@ -35,7 +35,12 @@ func New(dir string, stdin io.Reader, stdout io.Writer, stderr io.Writer) App {
 
 func (a App) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		a.printUsage()
+		a.printHelp("")
+		return nil
+	}
+
+	if isHelpRequest(args) {
+		a.printHelp(helpCommandName(args))
 		return nil
 	}
 
@@ -49,16 +54,29 @@ func (a App) Run(ctx context.Context, args []string) error {
 
 	switch args[0] {
 	case "work":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("work")
+			return nil
+		}
 		return a.runWork(ctx, args[1:])
 	case "pr":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("pr")
+			return nil
+		}
 		return a.runPR(ctx, args[1:])
 	case "today":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("today")
+			return nil
+		}
 		return a.runToday(ctx, args[1:])
 	case "epic":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("epic")
+			return nil
+		}
 		return a.runEpic(ctx, args[1:])
-	case "help", "-h", "--help":
-		a.printUsage()
-		return nil
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
@@ -256,10 +274,6 @@ func (a App) confirm(question string) (bool, error) {
 	}
 	answer = strings.TrimSpace(strings.ToLower(answer))
 	return answer == "y" || answer == "yes", nil
-}
-
-func (a App) printUsage() {
-	fmt.Fprintln(a.Stdout, "usage: gitwork <work|pr|today|epic>")
 }
 
 func branchName(pattern string, issueKey string) string {

@@ -257,6 +257,7 @@ func TestHelpPrintsGeneralUsage(t *testing.T) {
 		"Pull Request を作成",
 		"今日見るべき子タスク",
 		"epic status",
+		"config path",
 		"よくある流れ",
 	} {
 		if !strings.Contains(output, want) {
@@ -277,6 +278,54 @@ func TestHelpPrintsSubcommandUsage(t *testing.T) {
 	output := out.String()
 	if !strings.Contains(output, "--dry-run") || !strings.Contains(output, "--yes") {
 		t.Fatalf("expected pr help flags, got %q", output)
+	}
+}
+
+func TestConfigPathShowsPaths(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"config", "path"}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, prefix := range []string{"env: ", "tree.json: "} {
+		if !strings.Contains(output, prefix) {
+			t.Fatalf("expected output to contain %q, got %q", prefix, output)
+		}
+	}
+}
+
+func TestConfigPathShowsCustomEnvFile(t *testing.T) {
+	customPath := filepath.Join(t.TempDir(), "custom.env")
+	t.Setenv("GITWORK_ENV_FILE", customPath)
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"config", "path"}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, "env (GITWORK_ENV_FILE): "+customPath) {
+		t.Fatalf("expected custom env path in output, got %q", output)
+	}
+}
+
+func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
+	t.Parallel()
+
+	app := App{Stdout: &bytes.Buffer{}, loadDeps: false}
+	err := app.Run(context.Background(), []string{"config", "unknown"})
+	if err == nil {
+		t.Fatal("expected error for unknown config subcommand")
+	}
+	if !strings.Contains(err.Error(), "usage: gitwork config path") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

@@ -2,9 +2,9 @@
 
 ## 使いやすさを上げる
 
-- [ ] `gitwork init` を追加し、`config.json` の雛形作成と保存先表示を対話形式で行えるようにする。
+- [ ] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。
 - [ ] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。
-- [ ] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。
+- [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。
 - [ ] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。
 - [ ] `gitwork today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
@@ -40,7 +40,12 @@
 - [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。
 - [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
 
-## メンテナンスしやすくする
+## 次回の診断メモ（2026-07-02）
+
+- `config path` は実装済み。次は初回セットアップ導線として `gitwork init`（`.env` 雛形）か、実行前チェックの `gitwork doctor` が効果的。
+- `issueKeyFromBranch` のエラー改善は `pr` / `epic status` の両方に効く小さな改善で、1回の作業で完了しやすい。
+- `BranchPattern` / `ProjectKey` は config にあるが `work` ブランチ生成では未使用（`workBranchName` は固定形式）。README の `GITWORK_PROJECT_KEY` 記載と実装の乖離に注意。
+- CI（GitHub Actions）は未導入。`go test ./...` の自動実行は保守性向上に有効。
 
 - [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。

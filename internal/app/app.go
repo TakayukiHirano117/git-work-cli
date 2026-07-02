@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -42,6 +43,14 @@ func (a App) Run(ctx context.Context, args []string) error {
 	if isHelpRequest(args) {
 		a.printHelp(helpCommandName(args))
 		return nil
+	}
+
+	if len(args) > 0 && args[0] == "config" {
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("config")
+			return nil
+		}
+		return a.runConfig(args[1:])
 	}
 
 	if a.loadDeps {
@@ -97,6 +106,31 @@ func (a App) withDeps() (App, error) {
 	a.Backlog = backlog.Client{SpaceURL: cfg.BacklogSpaceURL, APIKey: cfg.BacklogAPIKey}
 	a.loadDeps = false
 	return a, nil
+}
+
+func (a App) runConfig(args []string) error {
+	if len(args) == 0 || args[0] != "path" {
+		return errors.New("usage: gitwork config path")
+	}
+	if len(args) > 1 {
+		return errors.New("usage: gitwork config path")
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		return err
+	}
+	treePath, err := store.DefaultPath()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(a.Stdout, "env: %s\n", envPath)
+	if customPath := os.Getenv("GITWORK_ENV_FILE"); customPath != "" {
+		fmt.Fprintf(a.Stdout, "env (GITWORK_ENV_FILE): %s\n", customPath)
+	}
+	fmt.Fprintf(a.Stdout, "tree.json: %s\n", treePath)
+	return nil
 }
 
 func (a App) runWork(ctx context.Context, args []string) error {

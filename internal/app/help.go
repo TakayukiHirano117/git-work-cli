@@ -58,6 +58,10 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
     例: gitwork help pr
 
+  config path
+    設定ファイル (.env) と tree.json の保存先を表示します。
+    例: gitwork config path
+
 よくある流れ:
   1. エピック用ブランチに checkout
   2. gitwork work COMMUNITY-102   # 子タスク用ブランチを作成
@@ -190,6 +194,24 @@ func (a App) printCommandHelp(command string) {
   gitwork epic status`)
 	case "help":
 		a.printGeneralHelp()
+	case "config":
+		fmt.Fprintln(a.Stdout, `コマンド: config path
+
+使い方:
+  gitwork config path
+
+説明:
+  gitwork が使う設定ファイル (.env) と tree.json の保存先を表示します。
+  初回セットアップ時や設定場所を確認したいときに使います。
+
+表示例:
+  env: /Users/you/Library/Application Support/gitwork/.env
+  tree.json: /Users/you/Library/Application Support/gitwork/tree.json
+
+  GITWORK_ENV_FILE が設定されている場合は、そのパスも表示します。
+
+例:
+  gitwork config path`)
 	default:
 		fmt.Fprintf(a.Stdout, "不明なコマンド: %s\n\n", command)
 		a.printGeneralHelp()

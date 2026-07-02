@@ -102,6 +102,20 @@ func TestLoadEnvFileDoesNotOverrideExistingEnvironmentVariables(t *testing.T) {
 	}
 }
 
+func TestLoadIgnoresInvalidDoneStatusEnvironment(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("GITWORK_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
+	t.Setenv("BACKLOG_DONE_STATUS_ID", "done")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.BacklogDoneStatusID != 0 {
+		t.Fatalf("unexpected Backlog done status ID: %d", cfg.BacklogDoneStatusID)
+	}
+}
+
 func clearConfigEnv(t *testing.T) {
 	t.Helper()
 

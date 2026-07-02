@@ -54,6 +54,10 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     例: gitwork epic status COMMUNITY-100
     例: gitwork epic status
 
+  config path
+    設定ファイル (.env) と tree.json の保存場所を表示します。
+    例: gitwork config path
+
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
     例: gitwork help pr
@@ -161,6 +165,21 @@ func (a App) printCommandHelp(command string) {
 
 例:
   gitwork today`)
+	case "config":
+		fmt.Fprintln(a.Stdout, `コマンド: config path
+
+使い方:
+  gitwork config path
+
+説明:
+  設定ファイル (.env) と tree.json の保存場所を表示します。
+  初回セットアップ時や、設定ファイルの場所を確認したいときに使います。
+
+表示例:
+  env: /home/user/.config/gitwork/.env
+  tree: /home/user/.config/gitwork/tree.json
+
+任意の .env を使う場合は GITWORK_ENV_FILE 環境変数を設定してください。`)
 	case "epic":
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 

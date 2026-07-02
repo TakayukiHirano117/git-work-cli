@@ -241,6 +241,43 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	}
 }
 
+func TestConfigPathPrintsEnvAndTreeLocations(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"config", "path"}); err != nil {
+		t.Fatal(err)
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	treePath, err := store.DefaultPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, "env: "+envPath) {
+		t.Fatalf("expected env path in output, got %q", output)
+	}
+	if !strings.Contains(output, "tree: "+treePath) {
+		t.Fatalf("expected tree path in output, got %q", output)
+	}
+}
+
+func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
+	t.Parallel()
+
+	app := App{Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}, loadDeps: false}
+	if err := app.Run(context.Background(), []string{"config", "show"}); err == nil {
+		t.Fatal("expected error for unknown config subcommand")
+	}
+}
+
 func TestHelpPrintsGeneralUsage(t *testing.T) {
 	t.Parallel()
 

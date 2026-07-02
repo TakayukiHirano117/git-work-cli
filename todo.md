@@ -2,9 +2,9 @@
 
 ## 使いやすさを上げる
 
-- [ ] `gitwork init` を追加し、`config.json` の雛形作成と保存先表示を対話形式で行えるようにする。
+- [ ] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（現行実装は `.env` ベース。`config.json` は使わない）
 - [ ] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。
-- [ ] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。
+- [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。
 - [ ] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。
 - [ ] `gitwork today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
@@ -36,7 +36,7 @@
 - [ ] `gitwork pr --yes` が確認プロンプトを省略することをテストする。
 - [ ] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。
 - [ ] `issueKeyFromBranch` の複数パターンをテーブルテスト化する。
-- [ ] `branchName` のデフォルト値と `{issueKey}` 置換をテーブルテスト化する。
+- [ ] `BranchPattern` のデフォルト値と `{issueKey}` 置換をテーブルテスト化する。（`work` は `workBranchName` を使うため、`BranchPattern` は未使用の可能性あり）
 - [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。
 - [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
 
@@ -44,7 +44,8 @@
 
 - [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
-- [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。
+- [ ] `README.md` に `gitwork config path` コマンドの説明を追記する。
+- [ ] `README.md` の `.env` 自動読み込み説明が重複している行を整理する。
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。

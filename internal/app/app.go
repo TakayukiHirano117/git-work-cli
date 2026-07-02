@@ -77,6 +77,12 @@ func (a App) Run(ctx context.Context, args []string) error {
 			return nil
 		}
 		return a.runEpic(ctx, args[1:])
+	case "config":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("config")
+			return nil
+		}
+		return a.runConfig(args[1:])
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
@@ -216,6 +222,25 @@ func (a App) runToday(ctx context.Context, args []string) error {
 		return errors.New("usage: gitwork today")
 	}
 	return a.printRecordsForCurrentBranch(ctx)
+}
+
+func (a App) runConfig(args []string) error {
+	if len(args) != 1 || args[0] != "path" {
+		return errors.New("usage: gitwork config path")
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		return err
+	}
+	treePath, err := store.DefaultPath()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(a.Stdout, "env: %s\n", envPath)
+	fmt.Fprintf(a.Stdout, "tree: %s\n", treePath)
+	return nil
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {

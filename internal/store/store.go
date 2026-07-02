@@ -28,12 +28,20 @@ type Store struct {
 	path string
 }
 
-func NewDefault() (*Store, error) {
+func DefaultPath() (string, error) {
 	dir, err := config.ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "tree.json"), nil
+}
+
+func NewDefault() (*Store, error) {
+	path, err := DefaultPath()
 	if err != nil {
 		return nil, err
 	}
-	return New(filepath.Join(dir, "tree.json")), nil
+	return New(path), nil
 }
 
 func New(path string) *Store {

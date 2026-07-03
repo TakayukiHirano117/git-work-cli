@@ -45,6 +45,7 @@
 - [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
 - [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。
+- [ ] `help` に `config path` コマンドを追記する。
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。

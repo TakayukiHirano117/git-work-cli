@@ -6,6 +6,21 @@ import (
 	"testing"
 )
 
+func TestDefaultTreePath(t *testing.T) {
+	dir, err := ConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	treePath, err := DefaultTreePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if treePath != filepath.Join(dir, "tree.json") {
+		t.Fatalf("unexpected tree path: %s", treePath)
+	}
+}
+
 func TestLoadReadsSettingsFromEnvFile(t *testing.T) {
 	envPath := filepath.Join(t.TempDir(), ".env")
 	if err := os.WriteFile(envPath, []byte(`BACKLOG_SPACE_URL=https://example.backlog.com

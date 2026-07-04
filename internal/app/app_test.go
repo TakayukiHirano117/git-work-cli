@@ -291,6 +291,56 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	}
 }
 
+func TestTodayNoBacklogSkipsBacklogAPI(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("Backlog API should not be called with --no-backlog")
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
+		IssueKey:     "COMMUNITY-103",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"today", "--no-backlog"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	if !strings.Contains(output, "COMMUNITY-103  -  -") {
+		t.Fatalf("unexpected output: %s", output)
+	}
+}
+
 func TestHelpPrintsGeneralUsage(t *testing.T) {
 	t.Parallel()
 

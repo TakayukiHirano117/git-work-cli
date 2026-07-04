@@ -44,6 +44,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・今いるブランチを「親」として、そこから切った子ブランチを表示
     ・各課題の Backlog タイトル・ステータスも表示
     ・エピックブランチにいるとき、配下の作業状況を確認する用途
+    オプション: --no-backlog（Backlog API を呼ばずローカル記録のみ表示）
     例: gitwork today
 
   epic status [epic-key]
@@ -136,7 +137,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: today
 
 使い方:
-  gitwork today
+  gitwork today [--no-backlog]
 
 説明:
   現在のブランチから作成した子ブランチ（子タスク）を一覧表示します。
@@ -146,6 +147,7 @@ func (a App) printCommandHelp(command string) {
   1. 現在のブランチ名を取得
   2. tree.json から、このブランチを親に持つ記録を検索
   3. 各子ブランチの課題キーで Backlog からタイトル・ステータスを取得して表示
+     （--no-backlog 指定時は Backlog API を呼ばず、課題キーのみ表示）
 
 表示例:
   Current branch
@@ -159,8 +161,12 @@ func (a App) printCommandHelp(command string) {
   ・gitwork work で子ブランチを作成済みであること
   ・Backlog 設定があると課題タイトル・ステータスも表示される
 
+オプション:
+  --no-backlog   Backlog API を呼ばず、tree.json のローカル記録だけを表示
+
 例:
-  gitwork today`)
+  gitwork today
+  gitwork today --no-backlog`)
 	case "epic":
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 

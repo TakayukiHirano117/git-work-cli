@@ -157,6 +157,31 @@ func (c Config) ValidateDoneStatus() error {
 	return nil
 }
 
+func EnvTemplate() string {
+	return `BACKLOG_SPACE_URL=https://example.backlog.com
+BACKLOG_API_KEY=your-api-key
+BACKLOG_DONE_STATUS_ID=5
+GITHUB_REPO=owner/repo
+GITWORK_DEFAULT_BASE=develop
+GITWORK_PROJECT_KEY=COMMUNITY
+`
+}
+
+var ErrEnvFileExists = errors.New("env file already exists")
+
+func WriteEnvTemplate(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return ErrEnvFileExists
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(EnvTemplate()), 0o600)
+}
+
 func applyEnv(cfg *Config) {
 	if value := os.Getenv("BACKLOG_SPACE_URL"); value != "" {
 		cfg.BacklogSpaceURL = value

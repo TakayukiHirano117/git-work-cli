@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -50,6 +51,14 @@ func (a App) Run(ctx context.Context, args []string) error {
 			return nil
 		}
 		return a.runConfig(args[1:])
+	}
+
+	if args[0] == "init" {
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("init")
+			return nil
+		}
+		return a.runInit(args[1:])
 	}
 
 	if a.loadDeps {
@@ -266,6 +275,50 @@ func (a App) runDoctor(ctx context.Context, args []string) error {
 	if failed > 0 {
 		return fmt.Errorf("%d check(s) failed", failed)
 	}
+	return nil
+}
+
+func (a App) runInit(args []string) error {
+	if len(args) != 0 {
+		return errors.New("usage: gitwork init")
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		return err
+	}
+	treePath, err := config.DefaultTreePath()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(a.Stdout, "gitwork の設定ファイルは次の場所に保存されます:")
+	fmt.Fprintf(a.Stdout, "  config: %s\n", envPath)
+	fmt.Fprintf(a.Stdout, "  tree:   %s\n\n", treePath)
+
+	if _, err := os.Stat(envPath); err == nil {
+		fmt.Fprintf(a.Stdout, ".env は既に存在します: %s\n", envPath)
+		fmt.Fprintln(a.Stdout, "編集後は gitwork doctor で設定を確認できます。")
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	ok, err := a.confirm("Create .env template?")
+	if err != nil {
+		return err
+	}
+	if !ok {
+		fmt.Fprintln(a.Stdout, "cancelled")
+		return nil
+	}
+
+	if err := config.WriteEnvTemplate(envPath); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(a.Stdout, "created %s\n", envPath)
+	fmt.Fprintln(a.Stdout, "値を編集したあと、gitwork doctor で設定を確認できます。")
 	return nil
 }
 

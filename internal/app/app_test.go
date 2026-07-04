@@ -641,6 +641,7 @@ func TestHelpPrintsGeneralUsage(t *testing.T) {
 		"今日見るべき子タスク",
 		"epic status",
 		"config path",
+		"gitwork init",
 		"よくある流れ",
 	} {
 		if !strings.Contains(output, want) {
@@ -718,6 +719,110 @@ func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
 	app := App{Stdout: &bytes.Buffer{}, loadDeps: false}
 	if err := app.Run(context.Background(), []string{"config", "show"}); err == nil {
 		t.Fatal("expected error for unknown config subcommand")
+	}
+}
+
+func TestInitCreatesEnvTemplateWhenConfirmed(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:    strings.NewReader("y\n"),
+		Stdout:   out,
+		loadDeps: false,
+	}
+
+	if err := app.Run(context.Background(), []string{"init"}); err != nil {
+		t.Fatal(err)
+	}
+
+	envPath := filepath.Join(configHome, "gitwork", ".env")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != config.EnvTemplate() {
+		t.Fatalf("unexpected template content:\n%s", data)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		envPath,
+		"Create .env template?",
+		"created " + envPath,
+		"gitwork doctor",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected output to contain %q, got %q", want, output)
+		}
+	}
+}
+
+func TestInitSkipsCreationWhenDeclined(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	app := App{
+		Stdin:    strings.NewReader("n\n"),
+		Stdout:   &bytes.Buffer{},
+		loadDeps: false,
+	}
+
+	if err := app.Run(context.Background(), []string{"init"}); err != nil {
+		t.Fatal(err)
+	}
+
+	envPath := filepath.Join(configHome, "gitwork", ".env")
+	if _, err := os.Stat(envPath); !os.IsNotExist(err) {
+		t.Fatalf("expected no env file, got err=%v", err)
+	}
+}
+
+func TestInitDoesNotOverwriteExistingEnv(t *testing.T) {
+	configHome := t.TempDir()
+	configDir := filepath.Join(configHome, "gitwork")
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	envPath := filepath.Join(configDir, ".env")
+	if err := os.WriteFile(envPath, []byte("existing"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:    strings.NewReader("y\n"),
+		Stdout:   out,
+		loadDeps: false,
+	}
+
+	if err := app.Run(context.Background(), []string{"init"}); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "existing" {
+		t.Fatalf("expected existing file to remain, got %q", data)
+	}
+	if !strings.Contains(out.String(), "既に存在します") {
+		t.Fatalf("expected existing file message, got %q", out.String())
+	}
+}
+
+func TestInitRejectsExtraArgs(t *testing.T) {
+	t.Parallel()
+
+	app := App{
+		Stdout:   &bytes.Buffer{},
+		loadDeps: false,
+	}
+	if err := app.Run(context.Background(), []string{"init", "--force"}); err == nil {
+		t.Fatal("expected error for extra init args")
 	}
 }
 

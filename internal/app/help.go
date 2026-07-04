@@ -60,6 +60,11 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     初回セットアップ時やパス確認に使います。
     例: gitwork config path
 
+  init
+    初回セットアップ用に .env の雛形を作成します。
+    保存先を表示し、対話形式で雛形作成を確認します。
+    例: gitwork init
+
   doctor
     Git リポジトリ、gh 認証、Backlog 設定をまとめて検査します。
     初回セットアップ後やトラブル時の確認に使います。
@@ -222,6 +227,28 @@ func (a App) printCommandHelp(command string) {
 
 例:
   gitwork config path`)
+	case "init":
+		fmt.Fprintln(a.Stdout, `コマンド: init
+
+使い方:
+  gitwork init
+
+説明:
+  初回セットアップ用に .env の雛形を作成します。
+  設定ファイルと tree.json の保存先を表示し、対話形式で雛形作成を確認します。
+
+動作:
+  1. config (.env) と tree.json の保存先を表示
+  2. .env が未作成なら雛形作成を確認
+  3. 承認時に設定ディレクトリと .env を作成
+
+補足:
+  ・既に .env がある場合は上書きしません
+  ・任意の .env を使う場合は GITWORK_ENV_FILE 環境変数を設定します
+  ・設定後は gitwork doctor で前提条件を確認できます
+
+例:
+  gitwork init`)
 	case "epic":
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 

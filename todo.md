@@ -9,7 +9,6 @@
 - [ ] 端末が TTY のときだけ成功/警告/失敗の記号と色を付ける。
 - [ ] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `gitwork pr --dry-run` などの候補を表示する。
 - [ ] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（診断: `--json` にはあるが通常表示は課題キー・タイトル・ステータスのみ）
-- [ ] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（診断: CI やパイプでハングし得る）
 - [ ] `pr` 作成前の確認画面を、PR タイトル、Backlog URL、base、作成後ステータス更新の順で見やすく表示する。
 
 ## 保守性を上げる
@@ -42,6 +41,7 @@
 
 ## 完了済み
 
+- [x] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（`feature/automation/2026-07-04-work-non-interactive-flags`）
 - [x] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`Load` で明示的にエラーにする。（`feature/automation/2026-07-04-invalid-done-status-id`）
 - [x] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）
 - [x] `today` / `epic status` で一部の Backlog 取得が失敗しても、他の記録は表示を続ける。失敗分は stderr に warning を出し、plain 出力では `-`、JSON では空の title/status で残す。（`feature/automation/2026-07-04-partial-backlog-failure`）

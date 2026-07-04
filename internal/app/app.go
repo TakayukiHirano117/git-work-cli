@@ -130,6 +130,14 @@ func (a App) runWork(ctx context.Context, args []string) error {
 	}
 
 	childBranch := workBranchName(team, layer, issueKey)
+	tree, err := a.Store.Load()
+	if err != nil {
+		return err
+	}
+	if existing, ok := tree.FindChildBranch(repoRoot, childBranch); ok {
+		return store.DuplicateBranchError(childBranch, existing.ParentBranch)
+	}
+
 	if err := a.Git.CreateBranch(ctx, childBranch); err != nil {
 		return err
 	}

@@ -105,6 +105,56 @@ func TestWorkPromptsForTeamAndLayer(t *testing.T) {
 	}
 }
 
+func TestWorkShowsParentWhenBranchAlreadyRecorded(t *testing.T) {
+	t.Parallel()
+
+	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	existing := store.Record{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-100",
+		ChildBranch:  "feature/member/backend/COMMUNITY-102",
+		IssueKey:     "COMMUNITY-102",
+	}
+	if err := st.Add(existing); err != nil {
+		t.Fatal(err)
+	}
+
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"work", "COMMUNITY-102", "--team", "member", "--layer", "backend"})
+	if err == nil {
+		t.Fatal("expected duplicate branch error")
+	}
+	if !strings.Contains(err.Error(), "feature/member/backend/COMMUNITY-102") {
+		t.Fatalf("expected child branch in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "parent: feature/member/backend/COMMUNITY-100") {
+		t.Fatalf("expected parent branch in error, got %q", err.Error())
+	}
+	if len(commands) != 2 {
+		t.Fatalf("expected 2 git commands before duplicate check, got %d: %v", len(commands), commands)
+	}
+}
+
 func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 	t.Parallel()
 

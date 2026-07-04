@@ -64,7 +64,7 @@ func (s *Store) Add(record Record) error {
 
 	for _, existing := range tree.Records {
 		if existing.RepoRoot == record.RepoRoot && existing.ChildBranch == record.ChildBranch {
-			return fmt.Errorf("branch already recorded: %s", record.ChildBranch)
+			return DuplicateBranchError(existing.ChildBranch, existing.ParentBranch)
 		}
 	}
 
@@ -106,6 +106,19 @@ func (t Tree) ForEpic(repoRoot, epicKey string) []Record {
 		}
 	}
 	return records
+}
+
+func DuplicateBranchError(childBranch, parentBranch string) error {
+	return fmt.Errorf("branch already recorded: %s (parent: %s)", childBranch, parentBranch)
+}
+
+func (t Tree) FindChildBranch(repoRoot, childBranch string) (Record, bool) {
+	for _, record := range t.Records {
+		if record.RepoRoot == repoRoot && record.ChildBranch == childBranch {
+			return record, true
+		}
+	}
+	return Record{}, false
 }
 
 func issuePrefix(issueKey string) string {

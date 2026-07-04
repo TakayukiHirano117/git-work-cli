@@ -3,6 +3,7 @@ package app
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -345,21 +346,29 @@ func (a App) runToday(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("today", flag.ContinueOnError)
 	fs.SetOutput(a.Stderr)
 	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
+	jsonOutput := fs.Bool("json", false, "output as JSON")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: gitwork today [--no-backlog]")
+		return errors.New("usage: gitwork today [--no-backlog] [--json]")
 	}
-	return a.printRecordsForCurrentBranch(ctx, *noBacklog)
+	return a.printRecordsForCurrentBranch(ctx, *noBacklog, *jsonOutput)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
 	if len(args) == 0 || args[0] != "status" {
-		return errors.New("usage: gitwork epic status [epic-key]")
+		return errors.New("usage: gitwork epic status [--json] [epic-key]")
 	}
 
-	epicKey, err := a.resolveEpicKey(ctx, args[1:])
+	fs := flag.NewFlagSet("epic status", flag.ContinueOnError)
+	fs.SetOutput(a.Stderr)
+	jsonOutput := fs.Bool("json", false, "output as JSON")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+
+	epicKey, err := a.resolveEpicKey(ctx, fs.Args())
 	if err != nil {
 		return err
 	}
@@ -373,8 +382,13 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 		return err
 	}
 
+	records := tree.ForEpic(repoRoot, epicKey)
+	if *jsonOutput {
+		return a.printEpicJSON(ctx, epicKey, records, false)
+	}
+
 	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
-	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey), false)
+	return a.printRecords(ctx, records, false)
 }
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
@@ -393,7 +407,26 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 	return issueKeyFromBranch(currentBranch)
 }
 
-func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool) error {
+type recordOutput struct {
+	IssueKey     string    `json:"issueKey"`
+	Title        string    `json:"title"`
+	Status       string    `json:"status"`
+	ChildBranch  string    `json:"childBranch"`
+	ParentBranch string    `json:"parentBranch"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type todayJSONOutput struct {
+	CurrentBranch string         `json:"currentBranch"`
+	Children      []recordOutput `json:"children"`
+}
+
+type epicJSONOutput struct {
+	EpicKey string         `json:"epicKey"`
+	Records []recordOutput `json:"records"`
+}
+
+func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog, jsonOutput bool) error {
 	currentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
@@ -407,8 +440,72 @@ func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool)
 		return err
 	}
 
+	records := tree.Children(repoRoot, currentBranch)
+	if jsonOutput {
+		return a.printTodayJSON(ctx, currentBranch, records, skipBacklog)
+	}
+
 	fmt.Fprintf(a.Stdout, "Current branch\n%s\n\nChildren\n", currentBranch)
-	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch), skipBacklog)
+	return a.printRecords(ctx, records, skipBacklog)
+}
+
+func (a App) enrichRecords(ctx context.Context, records []store.Record, skipBacklog bool) ([]recordOutput, error) {
+	outputs := make([]recordOutput, 0, len(records))
+	for _, record := range records {
+		title := ""
+		status := ""
+		if !skipBacklog && a.Config.ValidateBacklog() == nil {
+			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
+			if err != nil {
+				return nil, err
+			}
+			title = issue.Summary
+			status = issue.Status
+		}
+		outputs = append(outputs, recordOutput{
+			IssueKey:     record.IssueKey,
+			Title:        title,
+			Status:       status,
+			ChildBranch:  record.ChildBranch,
+			ParentBranch: record.ParentBranch,
+			CreatedAt:    record.CreatedAt,
+		})
+	}
+	return outputs, nil
+}
+
+func (a App) printTodayJSON(ctx context.Context, currentBranch string, records []store.Record, skipBacklog bool) error {
+	children, err := a.enrichRecords(ctx, records, skipBacklog)
+	if err != nil {
+		return err
+	}
+	if children == nil {
+		children = []recordOutput{}
+	}
+	return encodeJSON(a.Stdout, todayJSONOutput{
+		CurrentBranch: currentBranch,
+		Children:      children,
+	})
+}
+
+func (a App) printEpicJSON(ctx context.Context, epicKey string, records []store.Record, skipBacklog bool) error {
+	outputs, err := a.enrichRecords(ctx, records, skipBacklog)
+	if err != nil {
+		return err
+	}
+	if outputs == nil {
+		outputs = []recordOutput{}
+	}
+	return encodeJSON(a.Stdout, epicJSONOutput{
+		EpicKey: strings.ToUpper(epicKey),
+		Records: outputs,
+	})
+}
+
+func encodeJSON(w io.Writer, value any) error {
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(value)
 }
 
 func (a App) printRecords(ctx context.Context, records []store.Record, skipBacklog bool) error {

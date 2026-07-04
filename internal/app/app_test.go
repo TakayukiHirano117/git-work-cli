@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"git-cli/internal/backlog"
 	"git-cli/internal/config"
@@ -1232,6 +1233,205 @@ func TestEpicStatusUsesCurrentBranchWhenEpicKeyIsMissing(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "COMMUNITY-101") {
 		t.Fatalf("expected epic child in output: %s", out.String())
+	}
+}
+
+func TestTodayJSONOutputsChildren(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-103" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		writeJSON(t, w, map[string]interface{}{
+			"issueKey": "COMMUNITY-103",
+			"summary":  "テストを書く",
+			"status": map[string]interface{}{
+				"name": "未着手",
+			},
+		})
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	createdAt := time.Date(2026, 7, 4, 10, 0, 0, 0, time.UTC)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
+		IssueKey:     "COMMUNITY-103",
+		CreatedAt:    createdAt,
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"today", "--json"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var payload todayJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out.String())
+	}
+	if payload.CurrentBranch != "feature/member/backend/COMMUNITY-102" {
+		t.Fatalf("unexpected current branch: %s", payload.CurrentBranch)
+	}
+	if len(payload.Children) != 1 {
+		t.Fatalf("expected 1 child, got %d", len(payload.Children))
+	}
+	child := payload.Children[0]
+	if child.IssueKey != "COMMUNITY-103" || child.Title != "テストを書く" || child.Status != "未着手" {
+		t.Fatalf("unexpected child record: %+v", child)
+	}
+	if child.ChildBranch != "feature/member/backend/COMMUNITY-103" {
+		t.Fatalf("unexpected child branch: %s", child.ChildBranch)
+	}
+}
+
+func TestTodayJSONNoBacklogSkipsBacklogAPI(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("Backlog API should not be called with --no-backlog")
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
+		IssueKey:     "COMMUNITY-103",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"today", "--json", "--no-backlog"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var payload todayJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out.String())
+	}
+	if len(payload.Children) != 1 {
+		t.Fatalf("expected 1 child, got %d", len(payload.Children))
+	}
+	child := payload.Children[0]
+	if child.Title != "" || child.Status != "" {
+		t.Fatalf("expected empty title/status without backlog, got %+v", child)
+	}
+}
+
+func TestEpicStatusJSONOutputsRecords(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-101" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		writeJSON(t, w, map[string]interface{}{
+			"issueKey": "COMMUNITY-101",
+			"summary":  "設計書を作成",
+			"status": map[string]interface{}{
+				"name": "完了",
+			},
+		})
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "develop",
+		ChildBranch:  "feature/member/backend/COMMUNITY-101",
+		IssueKey:     "COMMUNITY-101",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			if command == "git rev-parse --show-toplevel" {
+				return "/repo", nil
+			}
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"epic", "status", "--json", "COMMUNITY-100"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var payload epicJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, out.String())
+	}
+	if payload.EpicKey != "COMMUNITY-100" {
+		t.Fatalf("unexpected epic key: %s", payload.EpicKey)
+	}
+	if len(payload.Records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(payload.Records))
+	}
+	record := payload.Records[0]
+	if record.IssueKey != "COMMUNITY-101" || record.Title != "設計書を作成" || record.Status != "完了" {
+		t.Fatalf("unexpected record: %+v", record)
 	}
 }
 

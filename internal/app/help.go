@@ -152,7 +152,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: today
 
 使い方:
-  gitwork today [--no-backlog]
+  gitwork today [--no-backlog] [--json]
 
 説明:
   現在のブランチから作成した子ブランチ（子タスク）を一覧表示します。
@@ -178,10 +178,12 @@ func (a App) printCommandHelp(command string) {
 
 オプション:
   --no-backlog   Backlog API を呼ばず、tree.json のローカル記録だけを表示
+  --json         JSON 形式で出力（スクリプト連携向け）
 
 例:
   gitwork today
-  gitwork today --no-backlog`)
+  gitwork today --no-backlog
+  gitwork today --json`)
 	case "doctor":
 		fmt.Fprintln(a.Stdout, `コマンド: doctor
 
@@ -253,7 +255,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 
 使い方:
-  gitwork epic status [epic-key]
+  gitwork epic status [--json] [epic-key]
 
 説明:
   指定したエピック配下のブランチ・課題を一覧表示します。
@@ -273,9 +275,13 @@ func (a App) printCommandHelp(command string) {
   - COMMUNITY-102  API利用画面を実装  対応中
   - COMMUNITY-103  テストを書く        未着手
 
+オプション:
+  --json   JSON 形式で出力（スクリプト連携向け）
+
 例:
   gitwork epic status COMMUNITY-100
-  gitwork epic status`)
+  gitwork epic status
+  gitwork epic status --json COMMUNITY-100`)
 	case "help":
 		a.printGeneralHelp()
 	default:

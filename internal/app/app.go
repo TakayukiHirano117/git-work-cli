@@ -243,10 +243,16 @@ func (a App) runConfig(args []string) error {
 }
 
 func (a App) runToday(ctx context.Context, args []string) error {
-	if len(args) != 0 {
-		return errors.New("usage: gitwork today")
+	fs := flag.NewFlagSet("today", flag.ContinueOnError)
+	fs.SetOutput(a.Stderr)
+	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
-	return a.printRecordsForCurrentBranch(ctx)
+	if fs.NArg() != 0 {
+		return errors.New("usage: gitwork today [--no-backlog]")
+	}
+	return a.printRecordsForCurrentBranch(ctx, *noBacklog)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
@@ -269,7 +275,7 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 	}
 
 	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
-	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey))
+	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey), false)
 }
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
@@ -292,7 +298,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 	return epicKey, nil
 }
 
-func (a App) printRecordsForCurrentBranch(ctx context.Context) error {
+func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool) error {
 	currentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
@@ -307,10 +313,10 @@ func (a App) printRecordsForCurrentBranch(ctx context.Context) error {
 	}
 
 	fmt.Fprintf(a.Stdout, "Current branch\n%s\n\nChildren\n", currentBranch)
-	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch))
+	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch), skipBacklog)
 }
 
-func (a App) printRecords(ctx context.Context, records []store.Record) error {
+func (a App) printRecords(ctx context.Context, records []store.Record, skipBacklog bool) error {
 	if len(records) == 0 {
 		fmt.Fprintln(a.Stdout, "(none)")
 		return nil
@@ -319,7 +325,7 @@ func (a App) printRecords(ctx context.Context, records []store.Record) error {
 	for _, record := range records {
 		title := "-"
 		status := "-"
-		if a.Config.ValidateBacklog() == nil {
+		if !skipBacklog && a.Config.ValidateBacklog() == nil {
 			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
 			if err != nil {
 				return err

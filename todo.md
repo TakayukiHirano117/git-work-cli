@@ -28,9 +28,8 @@
 
 ## テストを増やす
 
-- [ ] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。
 - [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
-- [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。
+- [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）
 
 ## メンテナンスしやすくする
 
@@ -45,6 +44,7 @@
 
 ## 完了済み
 
+- [x] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。（`feature/automation/2026-07-04-pr-no-cancel`）
 - [x] `gitwork pr --yes` が確認プロンプトを省略することをテストする。（`feature/automation/2026-07-04-pr-yes-skip-confirm`）
 - [x] `help` に `config path` コマンドを追記する。（`feature/automation/2026-07-04-help-config-path`）
 - [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。（`feature/automation/2026-07-04-config-path`）

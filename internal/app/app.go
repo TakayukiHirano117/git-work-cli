@@ -358,11 +358,12 @@ func (a App) runToday(ctx context.Context, args []string) error {
 
 func (a App) runEpic(ctx context.Context, args []string) error {
 	if len(args) == 0 || args[0] != "status" {
-		return errors.New("usage: gitwork epic status [--json] [epic-key]")
+		return errors.New("usage: gitwork epic status [--no-backlog] [--json] [epic-key]")
 	}
 
 	fs := flag.NewFlagSet("epic status", flag.ContinueOnError)
 	fs.SetOutput(a.Stderr)
+	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
 	jsonOutput := fs.Bool("json", false, "output as JSON")
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
@@ -384,11 +385,11 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 
 	records := tree.ForEpic(repoRoot, epicKey)
 	if *jsonOutput {
-		return a.printEpicJSON(ctx, epicKey, records, false)
+		return a.printEpicJSON(ctx, epicKey, records, *noBacklog)
 	}
 
 	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
-	return a.printRecords(ctx, records, false)
+	return a.printRecords(ctx, records, *noBacklog)
 }
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {

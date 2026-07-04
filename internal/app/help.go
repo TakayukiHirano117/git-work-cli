@@ -52,6 +52,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・epic-key 省略時は現在ブランチの課題キーを epic として使う
     ・課題キーのプレフィックス（例: COMMUNITY-100 → COMMUNITY）で絞り込み
     ・エピック全体の進捗を俯瞰する用途
+    オプション: --no-backlog（Backlog API を呼ばずローカル記録のみ表示） / --json
     例: gitwork epic status COMMUNITY-100
     例: gitwork epic status
 
@@ -255,7 +256,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 
 使い方:
-  gitwork epic status [--json] [epic-key]
+  gitwork epic status [--no-backlog] [--json] [epic-key]
 
 説明:
   指定したエピック配下のブランチ・課題を一覧表示します。
@@ -267,6 +268,7 @@ func (a App) printCommandHelp(command string) {
   2. エピックキーのプレフィックス（COMMUNITY-100 → COMMUNITY）で絞り込み
   3. 同じリポジトリ内の該当課題キーを tree.json から検索
   4. 各課題の Backlog タイトル・ステータスを表示
+     （--no-backlog 指定時は Backlog API を呼ばず、課題キーのみ表示）
 
 表示例:
   Epic COMMUNITY-100
@@ -276,11 +278,13 @@ func (a App) printCommandHelp(command string) {
   - COMMUNITY-103  テストを書く        未着手
 
 オプション:
-  --json   JSON 形式で出力（スクリプト連携向け）
+  --no-backlog   Backlog API を呼ばず、tree.json のローカル記録だけを表示
+  --json         JSON 形式で出力（スクリプト連携向け）
 
 例:
   gitwork epic status COMMUNITY-100
   gitwork epic status
+  gitwork epic status --no-backlog COMMUNITY-100
   gitwork epic status --json COMMUNITY-100`)
 	case "help":
 		a.printGeneralHelp()

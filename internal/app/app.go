@@ -397,7 +397,7 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
 	if len(args) == 1 {
-		return strings.ToUpper(args[0]), nil
+		return parseIssueKey(args[0])
 	}
 	if len(args) > 1 {
 		return "", errors.New("usage: gitwork epic status [epic-key]")

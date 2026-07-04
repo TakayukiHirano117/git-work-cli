@@ -28,7 +28,6 @@
 
 ## テストを増やす
 
-- [ ] `gitwork pr --yes` が確認プロンプトを省略することをテストする。
 - [ ] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。
 - [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
 - [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。
@@ -46,6 +45,7 @@
 
 ## 完了済み
 
+- [x] `gitwork pr --yes` が確認プロンプトを省略することをテストする。（`feature/automation/2026-07-04-pr-yes-skip-confirm`）
 - [x] `help` に `config path` コマンドを追記する。（`feature/automation/2026-07-04-help-config-path`）
 - [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。（`feature/automation/2026-07-04-config-path`）
 - [x] 課題キーが見つからないブランチで `gitwork pr` を実行したとき、期待するブランチ名例をエラーメッセージに出す。（`feature/automation/2026-07-04-pr-issue-key-hint`）

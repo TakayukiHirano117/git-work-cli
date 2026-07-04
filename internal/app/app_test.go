@@ -280,6 +280,41 @@ func TestHelpPrintsSubcommandUsage(t *testing.T) {
 	}
 }
 
+func TestConfigPathPrintsConfigAndTreeLocations(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"config", "path"}); err != nil {
+		t.Fatal(err)
+	}
+
+	configDir, err := config.ConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	wantConfig := filepath.Join(configDir, ".env")
+	wantTree := filepath.Join(configDir, "tree.json")
+	if !strings.Contains(output, wantConfig) {
+		t.Fatalf("expected config path %q in output, got %q", wantConfig, output)
+	}
+	if !strings.Contains(output, wantTree) {
+		t.Fatalf("expected tree path %q in output, got %q", wantTree, output)
+	}
+}
+
+func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
+	t.Parallel()
+
+	app := App{Stdout: &bytes.Buffer{}, loadDeps: false}
+	if err := app.Run(context.Background(), []string{"config", "show"}); err == nil {
+		t.Fatal("expected error for unknown config subcommand")
+	}
+}
+
 func TestIssueKeyFromBranch(t *testing.T) {
 	t.Parallel()
 

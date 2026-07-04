@@ -2,6 +2,7 @@ package store
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -21,8 +22,15 @@ func TestAddRejectsDuplicateChildBranchInSameRepo(t *testing.T) {
 	if err := st.Add(record); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Add(record); err == nil {
+	err := st.Add(record)
+	if err == nil {
 		t.Fatal("expected duplicate branch error")
+	}
+	if !strings.Contains(err.Error(), "feature/community-101") {
+		t.Fatalf("expected child branch in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "parent: develop") {
+		t.Fatalf("expected parent branch in error, got %q", err.Error())
 	}
 }
 

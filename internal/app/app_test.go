@@ -105,6 +105,56 @@ func TestWorkPromptsForTeamAndLayer(t *testing.T) {
 	}
 }
 
+func TestWorkShowsParentWhenBranchAlreadyRecorded(t *testing.T) {
+	t.Parallel()
+
+	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	existing := store.Record{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-100",
+		ChildBranch:  "feature/member/backend/COMMUNITY-102",
+		IssueKey:     "COMMUNITY-102",
+	}
+	if err := st.Add(existing); err != nil {
+		t.Fatal(err)
+	}
+
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"work", "COMMUNITY-102", "--team", "member", "--layer", "backend"})
+	if err == nil {
+		t.Fatal("expected duplicate branch error")
+	}
+	if !strings.Contains(err.Error(), "feature/member/backend/COMMUNITY-102") {
+		t.Fatalf("expected child branch in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "parent: feature/member/backend/COMMUNITY-100") {
+		t.Fatalf("expected parent branch in error, got %q", err.Error())
+	}
+	if len(commands) != 2 {
+		t.Fatalf("expected 2 git commands before duplicate check, got %d: %v", len(commands), commands)
+	}
+}
+
 func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 	t.Parallel()
 
@@ -182,6 +232,83 @@ func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 	}
 }
 
+func TestPRDryRunPrintsPreviewWithoutSideEffects(t *testing.T) {
+	t.Parallel()
+
+	backlogCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			backlogCalled = true
+		}
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-102" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		writeJSON(t, w, map[string]interface{}{
+			"issueKey": "COMMUNITY-102",
+			"summary":  "API利用画面を実装",
+			"status": map[string]interface{}{
+				"name": "対応中",
+			},
+		})
+	}))
+	defer server.Close()
+
+	var commands []string
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     server.URL,
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			if command == "git branch --show-current" {
+				return "feature/member/backend/COMMUNITY-102", nil
+			}
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"pr", "--dry-run"}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"=== Pull Request preview (dry-run) ===",
+		"Title:",
+		"API利用画面を実装",
+		"Base:",
+		"develop",
+		"Body:",
+		"## Backlog",
+		"Commands (not executed):",
+		"git push -u origin feature/member/backend/COMMUNITY-102",
+		`gh pr create --title "API利用画面を実装" --body <above> --base develop --repo owner/repo`,
+		"Backlog: update COMMUNITY-102 status to 5",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected output to contain %q, got:\n%s", want, output)
+		}
+	}
+	if len(commands) != 1 {
+		t.Fatalf("expected only current branch lookup, got %d commands: %v", len(commands), commands)
+	}
+	if backlogCalled {
+		t.Fatal("Backlog status update should not run in dry-run")
+	}
+}
+
 func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	t.Parallel()
 
@@ -241,6 +368,56 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	}
 }
 
+func TestTodayNoBacklogSkipsBacklogAPI(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("Backlog API should not be called with --no-backlog")
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
+		IssueKey:     "COMMUNITY-103",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"today", "--no-backlog"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	if !strings.Contains(output, "COMMUNITY-103  -  -") {
+		t.Fatalf("unexpected output: %s", output)
+	}
+}
+
 func TestHelpPrintsGeneralUsage(t *testing.T) {
 	t.Parallel()
 
@@ -257,6 +434,7 @@ func TestHelpPrintsGeneralUsage(t *testing.T) {
 		"Pull Request を作成",
 		"今日見るべき子タスク",
 		"epic status",
+		"config path",
 		"よくある流れ",
 	} {
 		if !strings.Contains(output, want) {
@@ -277,6 +455,28 @@ func TestHelpPrintsSubcommandUsage(t *testing.T) {
 	output := out.String()
 	if !strings.Contains(output, "--dry-run") || !strings.Contains(output, "--yes") {
 		t.Fatalf("expected pr help flags, got %q", output)
+	}
+}
+
+func TestHelpPrintsConfigSubcommandUsage(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"help", "config"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	for _, want := range []string{
+		"config path",
+		"gitwork config path",
+		".env",
+		"tree.json",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected config help to contain %q, got %q", want, output)
+		}
 	}
 }
 
@@ -318,12 +518,83 @@ func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
 func TestIssueKeyFromBranch(t *testing.T) {
 	t.Parallel()
 
-	issueKey, err := issueKeyFromBranch("feature/member/backend/COMMUNITY-102")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name    string
+		branch  string
+		wantKey string
+		wantErr string
+	}{
+		{
+			name:    "standard work branch",
+			branch:  "feature/member/backend/COMMUNITY-102",
+			wantKey: "COMMUNITY-102",
+		},
+		{
+			name:    "lowercase issue key",
+			branch:  "feature/admin/frontend/community-200",
+			wantKey: "COMMUNITY-200",
+		},
+		{
+			name:    "missing issue key",
+			branch:  "feature/member/backend",
+			wantErr: `issue key not found in branch "feature/member/backend" (expected format, e.g. feature/member/backend/COMMUNITY-102)`,
+		},
 	}
-	if issueKey != "COMMUNITY-102" {
-		t.Fatalf("unexpected issue key: %s", issueKey)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			issueKey, err := issueKeyFromBranch(tt.branch)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				if err.Error() != tt.wantErr {
+					t.Fatalf("unexpected error: %q", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if issueKey != tt.wantKey {
+				t.Fatalf("unexpected issue key: %s", issueKey)
+			}
+		})
+	}
+}
+
+func TestPRShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
+	t.Parallel()
+
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     "https://example.backlog.com",
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+		},
+		Store:  store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			if name+" "+strings.Join(args, " ") == "git branch --show-current" {
+				return "feature/member/backend", nil
+			}
+			t.Fatalf("unexpected command: %s %v", name, args)
+			return "", nil
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"pr"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	want := `issue key not found in branch "feature/member/backend" (expected format, e.g. feature/member/backend/COMMUNITY-102)`
+	if err.Error() != want {
+		t.Fatalf("unexpected error: %q", err.Error())
 	}
 }
 

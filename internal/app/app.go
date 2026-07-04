@@ -45,6 +45,10 @@ func (a App) Run(ctx context.Context, args []string) error {
 	}
 
 	if args[0] == "config" {
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("config")
+			return nil
+		}
 		return a.runConfig(args[1:])
 	}
 
@@ -130,6 +134,14 @@ func (a App) runWork(ctx context.Context, args []string) error {
 	}
 
 	childBranch := workBranchName(team, layer, issueKey)
+	tree, err := a.Store.Load()
+	if err != nil {
+		return err
+	}
+	if existing, ok := tree.FindChildBranch(repoRoot, childBranch); ok {
+		return store.DuplicateBranchError(childBranch, existing.ParentBranch)
+	}
+
 	if err := a.Git.CreateBranch(ctx, childBranch); err != nil {
 		return err
 	}
@@ -183,8 +195,13 @@ func (a App) runPR(ctx context.Context, args []string) error {
 		base = "develop"
 	}
 
+	if *dryRun {
+		printPRDryRun(a.Stdout, currentBranch, title, base, body, issueKey, a.Config)
+		return nil
+	}
+
 	fmt.Fprintf(a.Stdout, "title: %s\nbase: %s\n\n%s\n", title, base, body)
-	if !*yes && !*dryRun {
+	if !*yes {
 		ok, err := a.confirm("Create pull request?")
 		if err != nil {
 			return err
@@ -193,10 +210,6 @@ func (a App) runPR(ctx context.Context, args []string) error {
 			fmt.Fprintln(a.Stdout, "cancelled")
 			return nil
 		}
-	}
-
-	if *dryRun {
-		return nil
 	}
 
 	if err := a.Git.PushCurrentBranch(ctx, currentBranch); err != nil {
@@ -235,10 +248,16 @@ func (a App) runConfig(args []string) error {
 }
 
 func (a App) runToday(ctx context.Context, args []string) error {
-	if len(args) != 0 {
-		return errors.New("usage: gitwork today")
+	fs := flag.NewFlagSet("today", flag.ContinueOnError)
+	fs.SetOutput(a.Stderr)
+	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
-	return a.printRecordsForCurrentBranch(ctx)
+	if fs.NArg() != 0 {
+		return errors.New("usage: gitwork today [--no-backlog]")
+	}
+	return a.printRecordsForCurrentBranch(ctx, *noBacklog)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
@@ -261,7 +280,7 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 	}
 
 	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
-	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey))
+	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey), false)
 }
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
@@ -284,7 +303,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 	return epicKey, nil
 }
 
-func (a App) printRecordsForCurrentBranch(ctx context.Context) error {
+func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool) error {
 	currentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
@@ -299,10 +318,10 @@ func (a App) printRecordsForCurrentBranch(ctx context.Context) error {
 	}
 
 	fmt.Fprintf(a.Stdout, "Current branch\n%s\n\nChildren\n", currentBranch)
-	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch))
+	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch), skipBacklog)
 }
 
-func (a App) printRecords(ctx context.Context, records []store.Record) error {
+func (a App) printRecords(ctx context.Context, records []store.Record, skipBacklog bool) error {
 	if len(records) == 0 {
 		fmt.Fprintln(a.Stdout, "(none)")
 		return nil
@@ -311,7 +330,7 @@ func (a App) printRecords(ctx context.Context, records []store.Record) error {
 	for _, record := range records {
 		title := "-"
 		status := "-"
-		if a.Config.ValidateBacklog() == nil {
+		if !skipBacklog && a.Config.ValidateBacklog() == nil {
 			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
 			if err != nil {
 				return err
@@ -340,7 +359,12 @@ func issueKeyFromBranch(branch string) (string, error) {
 	re := regexp.MustCompile(`[A-Za-z]+-\d+`)
 	match := re.FindString(branch)
 	if match == "" {
-		return "", fmt.Errorf("issue key not found in branch: %s", branch)
+		example := workBranchName("member", "backend", "COMMUNITY-102")
+		return "", fmt.Errorf(
+			"issue key not found in branch %q (expected format, e.g. %s)",
+			branch,
+			example,
+		)
 	}
 	return strings.ToUpper(match), nil
 }
@@ -358,4 +382,21 @@ func prBody(issue backlog.Issue) string {
 
 - [ ] 動作確認
 `, issue.URL, issue.Summary)
+}
+
+func printPRDryRun(w io.Writer, branch, title, base, body, issueKey string, cfg config.Config) {
+	fmt.Fprintln(w, "=== Pull Request preview (dry-run) ===")
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Title:\n  %s\n\n", title)
+	fmt.Fprintf(w, "Base:\n  %s\n\n", base)
+	fmt.Fprintln(w, "Body:")
+	fmt.Fprintln(w, body)
+	fmt.Fprintln(w, "Commands (not executed):")
+	fmt.Fprintf(w, "  git push -u origin %s\n", branch)
+	fmt.Fprintf(w, "  gh pr create --title %q --body <above> --base %s", title, base)
+	if cfg.GitHubRepo != "" {
+		fmt.Fprintf(w, " --repo %s", cfg.GitHubRepo)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "  Backlog: update %s status to %d\n", issueKey, cfg.BacklogDoneStatusID)
 }

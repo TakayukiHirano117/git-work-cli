@@ -2,6 +2,8 @@
 
 ## 使いやすさを上げる
 
+- [ ] `work` に課題キー形式の検証を追加する。`pr` / `epic status` と同様に `COMMUNITY-102` 形式を要求し、不正キーではブランチを作らない。（診断: 現状は大文字化のみで、後段 `pr` で初めて失敗する）
+- [ ] `today` / `epic status` で一部の Backlog 取得が失敗しても、他の記録は表示を続ける。（診断: 1件の API 失敗でコマンド全体が終了する）
 ## かっこよくする
 
 - [ ] `gitwork` 単体実行時に小さめの ASCII アートロゴと主要コマンド一覧を表示する。
@@ -23,14 +25,16 @@
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`）
 - [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション）
 - [ ] `pr` で PR 作成後に Backlog 更新が失敗したとき、ユーザー向けの案内を改善する。（診断: 部分失敗で状態が不整合になりうる）
+- [ ] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（診断: 案内改善 TODO とセットで部分失敗を検証したい）
+- [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
 
-- [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
 - [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載）
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
+- [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
 - [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
@@ -38,6 +42,7 @@
 
 ## 完了済み
 
+- [x] `go vet ./...` を CI またはローカル確認手順に追加する。（`feature/automation/2026-07-04-go-vet-ci`）
 - [x] `epic status` に `--no-backlog` を追加し、`today` と同様に Backlog API を省略できるようにする。（`feature/automation/2026-07-04-epic-no-backlog`）
 - [x] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。（`feature/automation/2026-07-04-today-epic-json`）
 - [x] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（`feature/automation/2026-07-04-init`）

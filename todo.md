@@ -18,7 +18,7 @@
 - [ ] `internal/app` の各コマンド処理を `work.go`、`pr.go`、`today.go`、`epic.go` に分ける。
 - [ ] コマンド引数の parse と実行処理を分離し、各コマンドのテストを小さく書けるようにする。
 - [ ] 出力整形を `internal/output` のような小さなパッケージに切り出し、JSON 出力や装飾出力を追加しやすくする。
-- [ ] `backlog.Client` のエラーに HTTP status と endpoint を含め、調査しやすくする。
+- [ ] `backlog.Client` のエラーに完全な endpoint URL を含め、調査しやすくする。（診断: method/path/HTTP status は既に含まれている）
 - [ ] `git.Client` の実行ログを dry-run/doctor 用に再利用できる形で整理する。
 - [ ] `Config` に `ValidatePR`、`ValidateToday` など用途別の検証関数を追加し、必要な設定だけを明確にする。
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
@@ -26,7 +26,6 @@
 
 ## メンテナンスしやすくする
 
-- [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。（診断: `go.mod` は go 1.24 指定のため setup-go で 1.24 を使うこと）
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
 - [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。（診断: `doctor` は実装済みだが README 未記載）
 - [ ] `README.md` に `today --no-backlog` の説明を追記する。
@@ -38,6 +37,7 @@
 
 ## 完了済み
 
+- [x] GitHub Actions で `go test ./...` を実行する CI を追加する。（`feature/automation/2026-07-04-github-actions-ci`）
 - [x] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）（`feature/automation/2026-07-04-backlog-api-error-app-test`）
 - [x] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。（`feature/automation/2026-07-04-doctor`）
 - [x] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。（`feature/automation/2026-07-04-corrupt-tree-json-test`）

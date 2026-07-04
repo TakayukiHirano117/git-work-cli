@@ -1078,6 +1078,35 @@ func TestEpicStatusShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
 	}
 }
 
+func TestEpicStatusRejectsInvalidEpicKey(t *testing.T) {
+	t.Parallel()
+
+	var commands []string
+	app := App{
+		Stdin:    strings.NewReader(""),
+		Stdout:   &bytes.Buffer{},
+		Stderr:   &bytes.Buffer{},
+		loadDeps: false,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"epic", "status", "invalid-key"})
+	if err == nil {
+		t.Fatal("expected invalid issue key error")
+	}
+	if !strings.Contains(err.Error(), "invalid issue key") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(commands) != 0 {
+		t.Fatalf("expected no git commands, got %d: %v", len(commands), commands)
+	}
+}
+
 func TestPRFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
 	t.Parallel()
 

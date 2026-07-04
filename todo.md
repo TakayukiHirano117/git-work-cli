@@ -27,7 +27,6 @@
 
 ## テストを増やす
 
-- [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
 - [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）
 
 ## メンテナンスしやすくする
@@ -43,6 +42,7 @@
 
 ## 完了済み
 
+- [x] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。（`feature/automation/2026-07-04-corrupt-tree-json-test`）
 - [x] `gitwork epic status` で課題キーが取れないとき、`pr` と同様に期待するブランチ名例をエラーに含める。（`feature/automation/2026-07-04-epic-issue-key-hint`）
 - [x] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。（`feature/automation/2026-07-04-pr-no-cancel`）
 - [x] `gitwork pr --yes` が確認プロンプトを省略することをテストする。（`feature/automation/2026-07-04-pr-yes-skip-confirm`）

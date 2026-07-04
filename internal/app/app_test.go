@@ -581,6 +581,48 @@ func TestTodayNoBacklogSkipsBacklogAPI(t *testing.T) {
 	}
 }
 
+func TestTodayFailsWithCorruptTreeJSON(t *testing.T) {
+	t.Parallel()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	if err := os.WriteFile(treePath, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	app := App{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  store.New(treePath),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"today"})
+	if err == nil {
+		t.Fatal("expected error for corrupt tree.json")
+	}
+	for _, want := range []string{
+		treePath,
+		"invalid tree.json",
+		"fix the JSON or remove the file",
+		"gitwork config path",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("expected error to contain %q, got %q", want, err.Error())
+		}
+	}
+}
+
 func TestHelpPrintsGeneralUsage(t *testing.T) {
 	t.Parallel()
 

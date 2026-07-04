@@ -7,7 +7,6 @@
 - [ ] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。
 - [ ] `gitwork today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
-- [ ] `work` 実行時に同名ブランチがすでに記録されている場合、記録済みの親ブランチも表示する。
 - [ ] （推測）`gitwork epic status` で課題キーが取れないときも、`pr` と同様に期待するブランチ名例をエラーに含める。
 
 ## かっこよくする
@@ -52,3 +51,4 @@
 - [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。（`feature/automation/2026-07-04-config-path`）
 - [x] 課題キーが見つからないブランチで `gitwork pr` を実行したとき、期待するブランチ名例をエラーメッセージに出す。（`feature/automation/2026-07-04-pr-issue-key-hint`）
 - [x] `issueKeyFromBranch` の複数パターンをテーブルテスト化する。（`feature/automation/2026-07-04-pr-issue-key-hint`）
+- [x] `work` 実行時に同名ブランチがすでに記録されている場合、記録済みの親ブランチも表示する。（`feature/automation/2026-07-04-work-duplicate-parent-hint`）

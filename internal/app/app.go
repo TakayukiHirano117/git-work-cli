@@ -44,6 +44,10 @@ func (a App) Run(ctx context.Context, args []string) error {
 		return nil
 	}
 
+	if args[0] == "config" {
+		return a.runConfig(args[1:])
+	}
+
 	if a.loadDeps {
 		loaded, err := a.withDeps()
 		if err != nil {
@@ -208,6 +212,25 @@ func (a App) runPR(ctx context.Context, args []string) error {
 		return err
 	}
 	fmt.Fprintf(a.Stdout, "updated Backlog status: %s\n", issueKey)
+	return nil
+}
+
+func (a App) runConfig(args []string) error {
+	if len(args) != 1 || args[0] != "path" {
+		return errors.New("usage: gitwork config path")
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		return err
+	}
+	treePath, err := config.DefaultTreePath()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(a.Stdout, "config: %s\n", envPath)
+	fmt.Fprintf(a.Stdout, "tree:   %s\n", treePath)
 	return nil
 }
 

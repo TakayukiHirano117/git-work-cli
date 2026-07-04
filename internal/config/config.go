@@ -44,6 +44,14 @@ func DefaultEnvPath() (string, error) {
 	return filepath.Join(dir, ".env"), nil
 }
 
+func DefaultTreePath() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "tree.json"), nil
+}
+
 func Load() (Config, error) {
 	if err := loadEnvFiles(); err != nil {
 		return Config{}, err

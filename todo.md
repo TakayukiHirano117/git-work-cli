@@ -2,8 +2,6 @@
 
 ## 使いやすさを上げる
 
-- [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
-
 ## かっこよくする
 
 - [ ] `gitwork` 単体実行時に小さめの ASCII アートロゴと主要コマンド一覧を表示する。
@@ -22,20 +20,26 @@
 - [ ] `Config` に `ValidatePR`、`ValidateToday` など用途別の検証関数を追加し、必要な設定だけを明確にする。
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
+- [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`）
+- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション）
+- [ ] `pr` で PR 作成後に Backlog 更新が失敗したとき、ユーザー向けの案内を改善する。（診断: 部分失敗で状態が不整合になりうる）
 
 ## メンテナンスしやすくする
 
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
 - [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載）
-- [ ] `README.md` に `today --no-backlog` の説明を追記する。
+- [ ] `README.md` に `today --no-backlog` と `--json` の説明を追記する。
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
+- [ ] `help` の一般説明に `today` / `epic status` の `--json` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
+- [ ] `epic status` に `--no-backlog` を追加し、`today` と同様に Backlog API を省略できるようにする。（診断: today のみ対応）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。
 
 ## 完了済み
 
+- [x] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。（`feature/automation/2026-07-04-today-epic-json`）
 - [x] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（`feature/automation/2026-07-04-init`）
 - [x] GitHub Actions で `go test ./...` を実行する CI を追加する。（`feature/automation/2026-07-04-github-actions-ci`）
 - [x] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）（`feature/automation/2026-07-04-backlog-api-error-app-test`）

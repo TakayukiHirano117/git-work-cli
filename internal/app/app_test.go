@@ -626,7 +626,7 @@ func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := out.String()
-	if !strings.Contains(output, "COMMUNITY-103  テストを書く  未着手") {
+	if !strings.Contains(output, "COMMUNITY-103  feature/member/backend/COMMUNITY-103  テストを書く  未着手") {
 		t.Fatalf("unexpected output: %s", output)
 	}
 }
@@ -676,7 +676,7 @@ func TestTodayNoBacklogSkipsBacklogAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := out.String()
-	if !strings.Contains(output, "COMMUNITY-103  -  -") {
+	if !strings.Contains(output, "COMMUNITY-103  feature/member/backend/COMMUNITY-103  -  -") {
 		t.Fatalf("unexpected output: %s", output)
 	}
 }
@@ -1352,10 +1352,10 @@ func TestTodayContinuesWhenOneBacklogFetchFails(t *testing.T) {
 		t.Fatalf("expected success with partial backlog failure, got %v", err)
 	}
 	output := out.String()
-	if !strings.Contains(output, "COMMUNITY-103  -  -") {
+	if !strings.Contains(output, "COMMUNITY-103  feature/member/backend/COMMUNITY-103  -  -") {
 		t.Fatalf("expected placeholder for failed fetch, got %q", output)
 	}
-	if !strings.Contains(output, "COMMUNITY-104  成功課題  未着手") {
+	if !strings.Contains(output, "COMMUNITY-104  feature/member/backend/COMMUNITY-104  成功課題  未着手") {
 		t.Fatalf("expected successful fetch output, got %q", output)
 	}
 	stderr := errOut.String()
@@ -1429,10 +1429,10 @@ func TestEpicStatusContinuesWhenOneBacklogFetchFails(t *testing.T) {
 		t.Fatalf("expected success with partial backlog failure, got %v", err)
 	}
 	output := out.String()
-	if !strings.Contains(output, "COMMUNITY-101  -  -") {
+	if !strings.Contains(output, "COMMUNITY-101  feature/member/backend/COMMUNITY-101  -  -") {
 		t.Fatalf("expected placeholder for failed fetch, got %q", output)
 	}
-	if !strings.Contains(output, "COMMUNITY-102  設計書を作成  完了") {
+	if !strings.Contains(output, "COMMUNITY-102  feature/member/backend/COMMUNITY-102  設計書を作成  完了") {
 		t.Fatalf("expected successful fetch output, got %q", output)
 	}
 	stderr := errOut.String()
@@ -1806,7 +1806,7 @@ func TestEpicStatusNoBacklogSkipsBacklogAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := out.String()
-	if !strings.Contains(output, "COMMUNITY-101  -  -") {
+	if !strings.Contains(output, "COMMUNITY-101  feature/member/backend/COMMUNITY-101  -  -") {
 		t.Fatalf("unexpected output: %s", output)
 	}
 }

@@ -541,7 +541,7 @@ func (a App) printRecords(ctx context.Context, records []store.Record, skipBackl
 			title = "-"
 			status = "-"
 		}
-		fmt.Fprintf(a.Stdout, "- %s  %s  %s\n", record.IssueKey, title, status)
+		fmt.Fprintf(a.Stdout, "- %s  %s  %s  %s\n", record.IssueKey, record.ChildBranch, title, status)
 	}
 	return nil
 }

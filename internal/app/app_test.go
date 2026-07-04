@@ -232,6 +232,83 @@ func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 	}
 }
 
+func TestPRDryRunPrintsPreviewWithoutSideEffects(t *testing.T) {
+	t.Parallel()
+
+	backlogCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			backlogCalled = true
+		}
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-102" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		writeJSON(t, w, map[string]interface{}{
+			"issueKey": "COMMUNITY-102",
+			"summary":  "API利用画面を実装",
+			"status": map[string]interface{}{
+				"name": "対応中",
+			},
+		})
+	}))
+	defer server.Close()
+
+	var commands []string
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     server.URL,
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			if command == "git branch --show-current" {
+				return "feature/member/backend/COMMUNITY-102", nil
+			}
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"pr", "--dry-run"}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"=== Pull Request preview (dry-run) ===",
+		"Title:",
+		"API利用画面を実装",
+		"Base:",
+		"develop",
+		"Body:",
+		"## Backlog",
+		"Commands (not executed):",
+		"git push -u origin feature/member/backend/COMMUNITY-102",
+		`gh pr create --title "API利用画面を実装" --body <above> --base develop --repo owner/repo`,
+		"Backlog: update COMMUNITY-102 status to 5",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected output to contain %q, got:\n%s", want, output)
+		}
+	}
+	if len(commands) != 1 {
+		t.Fatalf("expected only current branch lookup, got %d commands: %v", len(commands), commands)
+	}
+	if backlogCalled {
+		t.Fatal("Backlog status update should not run in dry-run")
+	}
+}
+
 func TestTodayPrintsChildrenWithBacklogStatus(t *testing.T) {
 	t.Parallel()
 

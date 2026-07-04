@@ -191,8 +191,13 @@ func (a App) runPR(ctx context.Context, args []string) error {
 		base = "develop"
 	}
 
+	if *dryRun {
+		printPRDryRun(a.Stdout, currentBranch, title, base, body, issueKey, a.Config)
+		return nil
+	}
+
 	fmt.Fprintf(a.Stdout, "title: %s\nbase: %s\n\n%s\n", title, base, body)
-	if !*yes && !*dryRun {
+	if !*yes {
 		ok, err := a.confirm("Create pull request?")
 		if err != nil {
 			return err
@@ -201,10 +206,6 @@ func (a App) runPR(ctx context.Context, args []string) error {
 			fmt.Fprintln(a.Stdout, "cancelled")
 			return nil
 		}
-	}
-
-	if *dryRun {
-		return nil
 	}
 
 	if err := a.Git.PushCurrentBranch(ctx, currentBranch); err != nil {
@@ -377,4 +378,21 @@ func prBody(issue backlog.Issue) string {
 
 - [ ] 動作確認
 `, issue.URL, issue.Summary)
+}
+
+func printPRDryRun(w io.Writer, branch, title, base, body, issueKey string, cfg config.Config) {
+	fmt.Fprintln(w, "=== Pull Request preview (dry-run) ===")
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Title:\n  %s\n\n", title)
+	fmt.Fprintf(w, "Base:\n  %s\n\n", base)
+	fmt.Fprintln(w, "Body:")
+	fmt.Fprintln(w, body)
+	fmt.Fprintln(w, "Commands (not executed):")
+	fmt.Fprintf(w, "  git push -u origin %s\n", branch)
+	fmt.Fprintf(w, "  gh pr create --title %q --body <above> --base %s", title, base)
+	if cfg.GitHubRepo != "" {
+		fmt.Fprintf(w, " --repo %s", cfg.GitHubRepo)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "  Backlog: update %s status to %d\n", issueKey, cfg.BacklogDoneStatusID)
 }

@@ -58,7 +58,9 @@ func Load() (Config, error) {
 	}
 
 	cfg := Default()
-	applyEnv(&cfg)
+	if err := applyEnv(&cfg); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 
@@ -182,7 +184,7 @@ func WriteEnvTemplate(path string) error {
 	return os.WriteFile(path, []byte(EnvTemplate()), 0o600)
 }
 
-func applyEnv(cfg *Config) {
+func applyEnv(cfg *Config) error {
 	if value := os.Getenv("BACKLOG_SPACE_URL"); value != "" {
 		cfg.BacklogSpaceURL = value
 	}
@@ -190,9 +192,11 @@ func applyEnv(cfg *Config) {
 		cfg.BacklogAPIKey = value
 	}
 	if value := os.Getenv("BACKLOG_DONE_STATUS_ID"); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil {
-			cfg.BacklogDoneStatusID = parsed
+		parsed, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("invalid BACKLOG_DONE_STATUS_ID %q: must be an integer", value)
 		}
+		cfg.BacklogDoneStatusID = parsed
 	}
 	if value := os.Getenv("GITHUB_REPO"); value != "" {
 		cfg.GitHubRepo = value
@@ -206,4 +210,5 @@ func applyEnv(cfg *Config) {
 	if value := os.Getenv("GITWORK_PROJECT_KEY"); value != "" {
 		cfg.ProjectKey = value
 	}
+	return nil
 }

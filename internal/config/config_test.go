@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -85,7 +86,9 @@ GITHUB_REPO=owner/repo
 	}
 
 	cfg := Default()
-	applyEnv(&cfg)
+	if err := applyEnv(&cfg); err != nil {
+		t.Fatal(err)
+	}
 
 	if cfg.BacklogSpaceURL != "https://example.backlog.com" {
 		t.Fatalf("unexpected backlog url: %s", cfg.BacklogSpaceURL)
@@ -117,17 +120,35 @@ func TestLoadEnvFileDoesNotOverrideExistingEnvironmentVariables(t *testing.T) {
 	}
 }
 
-func TestLoadIgnoresInvalidDoneStatusEnvironment(t *testing.T) {
+func TestLoadRejectsInvalidDoneStatusEnvironment(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("GITWORK_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
 	t.Setenv("BACKLOG_DONE_STATUS_ID", "done")
 
-	cfg, err := Load()
-	if err != nil {
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid BACKLOG_DONE_STATUS_ID")
+	}
+	if !strings.Contains(err.Error(), "BACKLOG_DONE_STATUS_ID") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsInvalidDoneStatusInEnvFile(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("BACKLOG_DONE_STATUS_ID=done\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.BacklogDoneStatusID != 0 {
-		t.Fatalf("unexpected Backlog done status ID: %d", cfg.BacklogDoneStatusID)
+
+	clearConfigEnv(t)
+	t.Setenv("GITWORK_ENV_FILE", envPath)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid BACKLOG_DONE_STATUS_ID in env file")
+	}
+	if !strings.Contains(err.Error(), "BACKLOG_DONE_STATUS_ID") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

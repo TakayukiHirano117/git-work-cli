@@ -8,6 +8,8 @@
 - [ ] `--plain` オプションを用意し、CI やスクリプトでは装飾なしの出力に切り替えられるようにする。
 - [ ] 端末が TTY のときだけ成功/警告/失敗の記号と色を付ける。
 - [ ] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `gitwork pr --dry-run` などの候補を表示する。
+- [ ] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（診断: `--json` にはあるが通常表示は課題キー・タイトル・ステータスのみ）
+- [ ] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（診断: CI やパイプでハングし得る）
 - [ ] `pr` 作成前の確認画面を、PR タイトル、Backlog URL、base、作成後ステータス更新の順で見やすく表示する。
 
 ## 保守性を上げる
@@ -20,9 +22,10 @@
 - [ ] `Config` に `ValidatePR`、`ValidateToday` など用途別の検証関数を追加し、必要な設定だけを明確にする。
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
-- [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回優先度高）
-- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション）
-- [ ] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`doctor` や `Load` で明示的にエラーにするか検討する。（診断: `strconv.Atoi` 失敗時に 0 のまま残る）
+- [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
+- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション。失敗時に作成済みブランチ名を明示するのが第一歩）
+- [ ] 未知コマンドでも `config.Load()` が先に走る。コマンド名の検証を `withDeps` より前に移すか検討する。（診断: `.env` 不正時にタイポの切り分けがしづらい）
+- [ ] `.env` 形式不正時に `Load()` が行番号付きエラーを返すことをテストする。（診断: `loadEnvFile` の不正行経路が未テスト）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
@@ -39,7 +42,7 @@
 
 ## 完了済み
 
-- [x] `pr` で PR 作成後に Backlog 更新が失敗したとき、ユーザー向けの案内を改善する。push/PR 実行済みであることをエラーに含める。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）
+- [x] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`Load` で明示的にエラーにする。（`feature/automation/2026-07-04-invalid-done-status-id`）
 - [x] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）
 - [x] `today` / `epic status` で一部の Backlog 取得が失敗しても、他の記録は表示を続ける。失敗分は stderr に warning を出し、plain 出力では `-`、JSON では空の title/status で残す。（`feature/automation/2026-07-04-partial-backlog-failure`）
 - [x] `epic status <epic-key>` にも課題キー形式の検証を追加する。`parseIssueKey` を再利用し、不正キーを早期に弾く。（`feature/automation/2026-07-04-epic-issue-key-validation`）

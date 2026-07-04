@@ -1,0 +1,11 @@
+---
+description: PR and commit body language guidelines
+alwaysApply: true
+---
+
+# PR and Commit Body Language
+
+- PR本文とコミット本文は、必ず日本語でわかりやすく書く。
+- 読み手が背景を追えるように、変更理由・主な変更点・影響範囲・確認内容を簡潔に含める。
+- Conventional Commits のヘッダーなど、形式上英語が必要な短い識別子は使ってよいが、本文の説明は日本語にする。
+- 自動生成された定型文をそのまま使わず、このリポジトリの変更内容に合わせて具体的に書く。

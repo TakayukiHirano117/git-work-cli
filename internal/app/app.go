@@ -129,7 +129,10 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		return err
 	}
 
-	issueKey := strings.ToUpper(issueKeyArg)
+	issueKey, err := parseIssueKey(issueKeyArg)
+	if err != nil {
+		return err
+	}
 	parentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err

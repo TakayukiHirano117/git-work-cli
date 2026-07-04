@@ -107,6 +107,51 @@ func TestWorkPromptsForTeamAndLayer(t *testing.T) {
 	}
 }
 
+func TestWorkRejectsInvalidIssueKey(t *testing.T) {
+	t.Parallel()
+
+	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"work", "invalid-key", "--team", "member", "--layer", "backend"})
+	if err == nil {
+		t.Fatal("expected invalid issue key error")
+	}
+	if !strings.Contains(err.Error(), "invalid issue key") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(commands) != 0 {
+		t.Fatalf("expected no git commands, got %d: %v", len(commands), commands)
+	}
+
+	tree, err := st.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tree.Records) != 0 {
+		t.Fatalf("expected no records, got %d", len(tree.Records))
+	}
+}
+
 func TestWorkShowsParentWhenBranchAlreadyRecorded(t *testing.T) {
 	t.Parallel()
 

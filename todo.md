@@ -2,8 +2,8 @@
 
 ## 使いやすさを上げる
 
-- [ ] `work` に課題キー形式の検証を追加する。`pr` / `epic status` と同様に `COMMUNITY-102` 形式を要求し、不正キーではブランチを作らない。（診断: 現状は大文字化のみで、後段 `pr` で初めて失敗する）
 - [ ] `today` / `epic status` で一部の Backlog 取得が失敗しても、他の記録は表示を続ける。（診断: 1件の API 失敗でコマンド全体が終了する）
+- [ ] `epic status <epic-key>` にも課題キー形式の検証を追加する。（診断: `work` で追加した `parseIssueKey` を再利用でき、不正キーを早期に弾ける）
 ## かっこよくする
 
 - [ ] `gitwork` 単体実行時に小さめの ASCII アートロゴと主要コマンド一覧を表示する。
@@ -42,6 +42,7 @@
 
 ## 完了済み
 
+- [x] `work` に課題キー形式の検証を追加する。`pr` / `epic status` と同様に `COMMUNITY-102` 形式を要求し、不正キーではブランチを作らない。（`feature/automation/2026-07-04-work-issue-key-validation`）
 - [x] `go vet ./...` を CI またはローカル確認手順に追加する。（`feature/automation/2026-07-04-go-vet-ci`）
 - [x] `epic status` に `--no-backlog` を追加し、`today` と同様に Backlog API を省略できるようにする。（`feature/automation/2026-07-04-epic-no-backlog`）
 - [x] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。（`feature/automation/2026-07-04-today-epic-json`）

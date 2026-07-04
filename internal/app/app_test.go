@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -72,6 +73,10 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 func TestWorkPromptsForTeamAndLayer(t *testing.T) {
 	t.Parallel()
 
+	old := stdinIsTTY
+	stdinIsTTY = func(io.Reader) bool { return true }
+	t.Cleanup(func() { stdinIsTTY = old })
+
 	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
 	app := App{
 		Stdin:  strings.NewReader("2\n1\n"),
@@ -104,6 +109,54 @@ func TestWorkPromptsForTeamAndLayer(t *testing.T) {
 	}
 	if tree.Records[0].ChildBranch != "feature/admin/frontend/COMMUNITY-200" {
 		t.Fatalf("unexpected child branch: %s", tree.Records[0].ChildBranch)
+	}
+}
+
+func TestWorkRejectsMissingFlagsOnNonInteractiveStdin(t *testing.T) {
+	t.Parallel()
+
+	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"work", "COMMUNITY-200"})
+	if err == nil {
+		t.Fatal("expected non-interactive error")
+	}
+	if !strings.Contains(err.Error(), "non-interactive stdin") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "--team") || !strings.Contains(err.Error(), "--layer") {
+		t.Fatalf("expected missing flag hints, got %q", err.Error())
+	}
+	if len(commands) != 2 {
+		t.Fatalf("expected 2 git commands before flag check, got %d: %v", len(commands), commands)
+	}
+
+	tree, err := st.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tree.Records) != 0 {
+		t.Fatalf("expected no records, got %d", len(tree.Records))
 	}
 }
 

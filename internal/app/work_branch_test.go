@@ -1,6 +1,10 @@
 package app
 
 import (
+	"bufio"
+	"bytes"
+	"io"
+	"strings"
 	"testing"
 )
 
@@ -43,5 +47,51 @@ func TestNormalizeWorkTeamRejectsUnknownValue(t *testing.T) {
 
 	if _, err := normalizeWorkTeam("ops"); err == nil {
 		t.Fatal("expected error for unknown team")
+	}
+}
+
+func TestRequireWorkFlagsForNonInteractiveRejectsMissingFlags(t *testing.T) {
+	t.Parallel()
+
+	err := requireWorkFlagsForNonInteractive("", "", strings.NewReader(""))
+	if err == nil {
+		t.Fatal("expected error for missing team and layer")
+	}
+	if !strings.Contains(err.Error(), "--team") || !strings.Contains(err.Error(), "--layer") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRequireWorkFlagsForNonInteractiveAllowsFlags(t *testing.T) {
+	t.Parallel()
+
+	if err := requireWorkFlagsForNonInteractive("member", "backend", strings.NewReader("")); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRequireWorkFlagsForNonInteractiveAllowsTTYWithoutFlags(t *testing.T) {
+	t.Parallel()
+
+	old := stdinIsTTY
+	stdinIsTTY = func(io.Reader) bool { return true }
+	t.Cleanup(func() { stdinIsTTY = old })
+
+	if err := requireWorkFlagsForNonInteractive("", "", strings.NewReader("")); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSelectWorkOptionAcceptsChoice(t *testing.T) {
+	t.Parallel()
+
+	reader := bufio.NewReader(strings.NewReader("2\n"))
+	stdout := &bytes.Buffer{}
+	got, err := selectWorkOption(reader, stdout, "Select team", workTeamOptions, normalizeWorkTeam)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "admin" {
+		t.Fatalf("unexpected team: %s", got)
 	}
 }

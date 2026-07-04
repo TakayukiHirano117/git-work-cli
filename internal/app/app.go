@@ -142,6 +142,10 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		return err
 	}
 
+	if err := requireWorkFlagsForNonInteractive(teamFlag, layerFlag, a.Stdin); err != nil {
+		return err
+	}
+
 	reader := bufio.NewReader(a.Stdin)
 	team, err := resolveWorkTeamChoice(teamFlag, reader, a.Stdout)
 	if err != nil {

@@ -434,6 +434,7 @@ func TestHelpPrintsGeneralUsage(t *testing.T) {
 		"Pull Request を作成",
 		"今日見るべき子タスク",
 		"epic status",
+		"config path",
 		"よくある流れ",
 	} {
 		if !strings.Contains(output, want) {
@@ -454,6 +455,28 @@ func TestHelpPrintsSubcommandUsage(t *testing.T) {
 	output := out.String()
 	if !strings.Contains(output, "--dry-run") || !strings.Contains(output, "--yes") {
 		t.Fatalf("expected pr help flags, got %q", output)
+	}
+}
+
+func TestHelpPrintsConfigSubcommandUsage(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"help", "config"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	for _, want := range []string{
+		"config path",
+		"gitwork config path",
+		".env",
+		"tree.json",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected config help to contain %q, got %q", want, output)
+		}
 	}
 }
 

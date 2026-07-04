@@ -45,6 +45,10 @@ func (a App) Run(ctx context.Context, args []string) error {
 	}
 
 	if args[0] == "config" {
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("config")
+			return nil
+		}
 		return a.runConfig(args[1:])
 	}
 

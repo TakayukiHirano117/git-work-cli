@@ -316,6 +316,85 @@ func TestPRYesSkipsConfirmationPrompt(t *testing.T) {
 	}
 }
 
+func TestPRNoCancelsCreation(t *testing.T) {
+	t.Parallel()
+
+	updated := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("apiKey") != "secret" {
+			t.Fatalf("missing api key")
+		}
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/issues/COMMUNITY-102":
+			writeJSON(t, w, map[string]interface{}{
+				"issueKey": "COMMUNITY-102",
+				"summary":  "API利用画面を実装",
+				"status": map[string]interface{}{
+					"name": "対応中",
+				},
+			})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v2/issues/COMMUNITY-102":
+			updated = true
+			t.Fatal("Backlog status update should not run when user declines")
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	var commands []string
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader("n\n"),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     server.URL,
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+			DefaultBase:         "develop",
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git push -u origin feature/member/backend/COMMUNITY-102":
+				t.Fatal("git push should not run when user declines")
+			default:
+				if strings.HasPrefix(command, "gh pr create ") {
+					t.Fatal("gh pr create should not run when user declines")
+				}
+				t.Fatalf("unexpected command: %s", command)
+			}
+			return "", nil
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"pr"}); err != nil {
+		t.Fatal(err)
+	}
+	if updated {
+		t.Fatal("expected no Backlog status update")
+	}
+	output := out.String()
+	if !strings.Contains(output, "Create pull request?") {
+		t.Fatalf("expected confirmation prompt, got:\n%s", output)
+	}
+	if !strings.Contains(output, "cancelled") {
+		t.Fatalf("expected cancelled message, got:\n%s", output)
+	}
+	if strings.Contains(output, "https://github.com") {
+		t.Fatalf("PR URL should not appear when cancelled, got:\n%s", output)
+	}
+	if len(commands) != 1 {
+		t.Fatalf("expected only current branch lookup, got %d: %v", len(commands), commands)
+	}
+}
+
 func TestPRDryRunPrintsPreviewWithoutSideEffects(t *testing.T) {
 	t.Parallel()
 

@@ -5,7 +5,6 @@
 - [ ] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（現行設定は `.env` ベース。`config.json` ではない）
 - [ ] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
-- [ ] （推測）`gitwork epic status` で課題キーが取れないときも、`pr` と同様に期待するブランチ名例をエラーに含める。
 
 ## かっこよくする
 
@@ -44,6 +43,7 @@
 
 ## 完了済み
 
+- [x] `gitwork epic status` で課題キーが取れないとき、`pr` と同様に期待するブランチ名例をエラーに含める。（`feature/automation/2026-07-04-epic-issue-key-hint`）
 - [x] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。（`feature/automation/2026-07-04-pr-no-cancel`）
 - [x] `gitwork pr --yes` が確認プロンプトを省略することをテストする。（`feature/automation/2026-07-04-pr-yes-skip-confirm`）
 - [x] `help` に `config path` コマンドを追記する。（`feature/automation/2026-07-04-help-config-path`）

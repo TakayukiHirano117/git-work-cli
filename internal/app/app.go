@@ -296,11 +296,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 		return "", err
 	}
 
-	epicKey, err := issueKeyFromBranch(currentBranch)
-	if err != nil {
-		return "", errors.New("usage: gitwork epic status [epic-key]")
-	}
-	return epicKey, nil
+	return issueKeyFromBranch(currentBranch)
 }
 
 func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool) error {

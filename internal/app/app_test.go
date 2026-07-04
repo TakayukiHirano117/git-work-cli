@@ -761,6 +761,33 @@ func TestPRShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
 	}
 }
 
+func TestEpicStatusShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
+	t.Parallel()
+
+	app := App{
+		Stdin:    strings.NewReader(""),
+		Stdout:   &bytes.Buffer{},
+		Stderr:   &bytes.Buffer{},
+		loadDeps: false,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			if name+" "+strings.Join(args, " ") == "git branch --show-current" {
+				return "feature/member/backend", nil
+			}
+			t.Fatalf("unexpected command: %s %v", name, args)
+			return "", nil
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"epic", "status"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	want := `issue key not found in branch "feature/member/backend" (expected format, e.g. feature/member/backend/COMMUNITY-102)`
+	if err.Error() != want {
+		t.Fatalf("unexpected error: %q", err.Error())
+	}
+}
+
 func TestEpicStatusUsesCurrentBranchWhenEpicKeyIsMissing(t *testing.T) {
 	t.Parallel()
 

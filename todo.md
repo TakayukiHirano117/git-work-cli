@@ -24,13 +24,9 @@
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
 
-## テストを増やす
-
-- [ ] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）
-
 ## メンテナンスしやすくする
 
-- [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。
+- [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。（診断: `go.mod` は go 1.24 指定のため setup-go で 1.24 を使うこと）
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
 - [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。（診断: `doctor` は実装済みだが README 未記載）
 - [ ] `README.md` に `today --no-backlog` の説明を追記する。
@@ -42,6 +38,7 @@
 
 ## 完了済み
 
+- [x] Backlog API が 4xx/5xx を返したときのユーザー向けエラーをテストする。（`internal/backlog` には HTTP エラー検証あり。`internal/app` 経由の表示は未テスト）（`feature/automation/2026-07-04-backlog-api-error-app-test`）
 - [x] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。（`feature/automation/2026-07-04-doctor`）
 - [x] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。（`feature/automation/2026-07-04-corrupt-tree-json-test`）
 - [x] `gitwork epic status` で課題キーが取れないとき、`pr` と同様に期待するブランチ名例をエラーに含める。（`feature/automation/2026-07-04-epic-issue-key-hint`）

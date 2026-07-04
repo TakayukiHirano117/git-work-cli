@@ -927,6 +927,163 @@ func TestEpicStatusShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
 	}
 }
 
+func TestPRFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-102" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     server.URL,
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			if command == "git branch --show-current" {
+				return "feature/member/backend/COMMUNITY-102", nil
+			}
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	err := app.Run(context.Background(), []string{"pr"})
+	if err == nil {
+		t.Fatal("expected error when Backlog API returns 5xx")
+	}
+	if !strings.Contains(err.Error(), "502 Bad Gateway") {
+		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "/api/v2/issues/COMMUNITY-102") {
+		t.Fatalf("expected endpoint in error, got %q", err.Error())
+	}
+	if len(commands) != 1 {
+		t.Fatalf("expected only current branch lookup, got %d: %v", len(commands), commands)
+	}
+}
+
+func TestTodayFailsWhenBacklogGetIssueReturns4xx(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-103" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "feature/member/backend/COMMUNITY-102",
+		ChildBranch:  "feature/member/backend/COMMUNITY-103",
+		IssueKey:     "COMMUNITY-103",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	err := app.Run(context.Background(), []string{"today"})
+	if err == nil {
+		t.Fatal("expected error when Backlog API returns 4xx")
+	}
+	if !strings.Contains(err.Error(), "404 Not Found") {
+		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "/api/v2/issues/COMMUNITY-103") {
+		t.Fatalf("expected endpoint in error, got %q", err.Error())
+	}
+}
+
+func TestEpicStatusFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-101" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{{
+		RepoRoot:     "/repo",
+		ParentBranch: "develop",
+		ChildBranch:  "feature/member/backend/COMMUNITY-101",
+		IssueKey:     "COMMUNITY-101",
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	err := app.Run(context.Background(), []string{"epic", "status", "COMMUNITY-100"})
+	if err == nil {
+		t.Fatal("expected error when Backlog API returns 5xx")
+	}
+	if !strings.Contains(err.Error(), "500 Internal Server Error") {
+		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "/api/v2/issues/COMMUNITY-101") {
+		t.Fatalf("expected endpoint in error, got %q", err.Error())
+	}
+}
+
 func TestEpicStatusUsesCurrentBranchWhenEpicKeyIsMissing(t *testing.T) {
 	t.Parallel()
 

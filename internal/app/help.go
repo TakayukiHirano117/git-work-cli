@@ -60,6 +60,11 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     初回セットアップ時やパス確認に使います。
     例: gitwork config path
 
+  doctor
+    Git リポジトリ、gh 認証、Backlog 設定をまとめて検査します。
+    初回セットアップ後やトラブル時の確認に使います。
+    例: gitwork doctor
+
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
     例: gitwork help pr
@@ -172,6 +177,31 @@ func (a App) printCommandHelp(command string) {
 例:
   gitwork today
   gitwork today --no-backlog`)
+	case "doctor":
+		fmt.Fprintln(a.Stdout, `コマンド: doctor
+
+使い方:
+  gitwork doctor
+
+説明:
+  gitwork を使うための前提条件をまとめて検査します。
+  初回セットアップ後や、コマンドが失敗したときの切り分けに使います。
+
+検査内容:
+  1. 現在のディレクトリが Git リポジトリ内か
+  2. GitHub CLI (gh) がログイン済みか
+  3. Backlog 設定 (.env) が pr 実行に必要な項目まで揃っているか
+
+表示例:
+  git repository: ok (/path/to/repo)
+  gh auth: ok
+  backlog config: ok
+
+いずれかが失敗した場合は終了コード 1 で終了します。
+設定ファイルの場所は gitwork config path で確認できます。
+
+例:
+  gitwork doctor`)
 	case "config":
 		fmt.Fprintln(a.Stdout, `コマンド: config path
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -717,6 +718,102 @@ func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
 	app := App{Stdout: &bytes.Buffer{}, loadDeps: false}
 	if err := app.Run(context.Background(), []string{"config", "show"}); err == nil {
 		t.Fatal("expected error for unknown config subcommand")
+	}
+}
+
+func TestDoctorAllChecksPass(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdout: out,
+		Config: config.Config{
+			BacklogSpaceURL:     "https://example.backlog.com",
+			BacklogAPIKey:       "key",
+			BacklogDoneStatusID: 5,
+		},
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			case "gh auth status":
+				return "", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		loadDeps: false,
+	}
+
+	if err := app.Run(context.Background(), []string{"doctor"}); err != nil {
+		t.Fatal(err)
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"git repository: ok (/repo)",
+		"gh auth: ok",
+		"backlog config: ok",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected output to contain %q, got %q", want, output)
+		}
+	}
+}
+
+func TestDoctorReportsFailures(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{
+		Stdout: out,
+		Config: config.Config{},
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git rev-parse --show-toplevel":
+				return "", fmt.Errorf("git rev-parse --show-toplevel: not a git repository")
+			case "gh auth status":
+				return "", fmt.Errorf("gh auth status: not logged in")
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		loadDeps: false,
+	}
+
+	err := app.Run(context.Background(), []string{"doctor"})
+	if err == nil {
+		t.Fatal("expected doctor to fail when checks fail")
+	}
+	if !strings.Contains(err.Error(), "3 check(s) failed") {
+		t.Fatalf("expected failure count in error, got %q", err.Error())
+	}
+
+	output := out.String()
+	for _, want := range []string{
+		"git repository: not ok",
+		"gh auth: not ok",
+		"backlog config: not ok",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected output to contain %q, got %q", want, output)
+		}
+	}
+}
+
+func TestDoctorRejectsExtraArgs(t *testing.T) {
+	t.Parallel()
+
+	app := App{
+		Stdout:   &bytes.Buffer{},
+		loadDeps: false,
+	}
+	if err := app.Run(context.Background(), []string{"doctor", "--verbose"}); err == nil {
+		t.Fatal("expected error for extra doctor args")
 	}
 }
 

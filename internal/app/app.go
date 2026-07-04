@@ -85,6 +85,12 @@ func (a App) Run(ctx context.Context, args []string) error {
 			return nil
 		}
 		return a.runEpic(ctx, args[1:])
+	case "doctor":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("doctor")
+			return nil
+		}
+		return a.runDoctor(ctx, args[1:])
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
@@ -225,6 +231,41 @@ func (a App) runPR(ctx context.Context, args []string) error {
 		return err
 	}
 	fmt.Fprintf(a.Stdout, "updated Backlog status: %s\n", issueKey)
+	return nil
+}
+
+func (a App) runDoctor(ctx context.Context, args []string) error {
+	if len(args) != 0 {
+		return errors.New("usage: gitwork doctor")
+	}
+
+	failed := 0
+
+	repoRoot, err := a.Git.RepoRoot(ctx)
+	if err != nil {
+		fmt.Fprintf(a.Stdout, "git repository: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintf(a.Stdout, "git repository: ok (%s)\n", repoRoot)
+	}
+
+	if err := a.Git.GHAuthStatus(ctx); err != nil {
+		fmt.Fprintf(a.Stdout, "gh auth: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "gh auth: ok")
+	}
+
+	if err := a.Config.ValidateDoneStatus(); err != nil {
+		fmt.Fprintf(a.Stdout, "backlog config: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "backlog config: ok")
+	}
+
+	if failed > 0 {
+		return fmt.Errorf("%d check(s) failed", failed)
+	}
 	return nil
 }
 

@@ -3,7 +3,6 @@
 ## 使いやすさを上げる
 
 - [ ] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（現行設定は `.env` ベース。`config.json` ではない）
-- [ ] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
 
 ## かっこよくする
@@ -33,15 +32,17 @@
 
 - [ ] GitHub Actions で `go test ./...` を実行する CI を追加する。
 - [ ] `go vet ./...` を CI またはローカル確認手順に追加する。
-- [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。
+- [ ] `README.md` に `doctor` や `init` 追加後の初回セットアップ手順を反映する。（診断: `doctor` は実装済みだが README 未記載）
 - [ ] `README.md` に `today --no-backlog` の説明を追記する。
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
+- [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。
 
 ## 完了済み
 
+- [x] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。（`feature/automation/2026-07-04-doctor`）
 - [x] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。（`feature/automation/2026-07-04-corrupt-tree-json-test`）
 - [x] `gitwork epic status` で課題キーが取れないとき、`pr` と同様に期待するブランチ名例をエラーに含める。（`feature/automation/2026-07-04-epic-issue-key-hint`）
 - [x] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。（`feature/automation/2026-07-04-pr-no-cancel`）

@@ -134,6 +134,57 @@ func TestLoadRejectsInvalidDoneStatusEnvironment(t *testing.T) {
 	}
 }
 
+func TestLoadEnvFileRejectsInvalidFormatWithLineNumber(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("BACKLOG_API_KEY=ok\ninvalid-line-without-equals\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	err := loadEnvFile(envPath)
+	if err == nil {
+		t.Fatal("expected error for invalid env format")
+	}
+	if !strings.Contains(err.Error(), "invalid env format at line 2") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadEnvFileRejectsEmptyKeyWithLineNumber(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("=value-only\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	err := loadEnvFile(envPath)
+	if err == nil {
+		t.Fatal("expected error for empty env key")
+	}
+	if !strings.Contains(err.Error(), "empty env key at line 1") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsInvalidEnvFileWithLineNumber(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envPath, []byte("BACKLOG_API_KEY=ok\nnot-valid\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	clearConfigEnv(t)
+	t.Setenv("GITWORK_ENV_FILE", envPath)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid env file")
+	}
+	if !strings.Contains(err.Error(), envPath) {
+		t.Fatalf("expected env file path in error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "invalid env format at line 2") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestLoadRejectsInvalidDoneStatusInEnvFile(t *testing.T) {
 	envPath := filepath.Join(t.TempDir(), ".env")
 	if err := os.WriteFile(envPath, []byte("BACKLOG_DONE_STATUS_ID=done\n"), 0o600); err != nil {

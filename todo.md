@@ -24,7 +24,6 @@
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
 - [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション。失敗時に作成済みブランチ名を明示するのが第一歩）
 - [ ] 未知コマンドでも `config.Load()` が先に走る。コマンド名の検証を `withDeps` より前に移すか検討する。（診断: `.env` 不正時にタイポの切り分けがしづらい）
-- [ ] `.env` 形式不正時に `Load()` が行番号付きエラーを返すことをテストする。（診断: `loadEnvFile` の不正行経路が未テスト）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
@@ -41,6 +40,7 @@
 
 ## 完了済み
 
+- [x] `.env` 形式不正時に `Load()` が行番号付きエラーを返すことをテストする。（`feature/automation/2026-07-04-invalid-env-line-number-test`）
 - [x] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（`feature/automation/2026-07-04-work-non-interactive-flags`）
 - [x] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`Load` で明示的にエラーにする。（`feature/automation/2026-07-04-invalid-done-status-id`）
 - [x] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）

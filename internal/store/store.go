@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"git-cli/internal/config"
+	"totonou/internal/config"
 )
 
 type Record struct {

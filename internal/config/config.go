@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const appDirName = "gitwork"
+const appDirName = "totonou"
 
 type Config struct {
 	BacklogSpaceURL     string
@@ -65,7 +65,7 @@ func Load() (Config, error) {
 func loadEnvFiles() error {
 	paths := make([]string, 0, 2)
 
-	if customPath := os.Getenv("GITWORK_ENV_FILE"); customPath != "" {
+	if customPath := os.Getenv("TOTONOU_ENV_FILE"); customPath != "" {
 		paths = append(paths, customPath)
 	}
 
@@ -172,13 +172,13 @@ func applyEnv(cfg *Config) {
 	if value := os.Getenv("GITHUB_REPO"); value != "" {
 		cfg.GitHubRepo = value
 	}
-	if value := os.Getenv("GITWORK_DEFAULT_BASE"); value != "" {
+	if value := os.Getenv("TOTONOU_DEFAULT_BASE"); value != "" {
 		cfg.DefaultBase = value
 	}
-	if value := os.Getenv("GITWORK_BRANCH_PATTERN"); value != "" {
+	if value := os.Getenv("TOTONOU_BRANCH_PATTERN"); value != "" {
 		cfg.BranchPattern = value
 	}
-	if value := os.Getenv("GITWORK_PROJECT_KEY"); value != "" {
+	if value := os.Getenv("TOTONOU_PROJECT_KEY"); value != "" {
 		cfg.ProjectKey = value
 	}
 }

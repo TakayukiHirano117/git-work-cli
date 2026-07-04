@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"git-cli/internal/app"
+	"totonou/internal/app"
 )
 
 func main() {

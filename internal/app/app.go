@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"git-cli/internal/backlog"
-	"git-cli/internal/config"
-	gitcmd "git-cli/internal/git"
-	"git-cli/internal/store"
+	"totonou/internal/backlog"
+	"totonou/internal/config"
+	gitcmd "totonou/internal/git"
+	"totonou/internal/store"
 )
 
 type App struct {
@@ -35,7 +35,7 @@ func New(dir string, stdin io.Reader, stdout io.Writer, stderr io.Writer) App {
 
 func (a App) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		a.printHelp("")
+		a.printWelcome()
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (a App) runPR(ctx context.Context, args []string) error {
 
 func (a App) runConfig(args []string) error {
 	if len(args) != 1 || args[0] != "path" {
-		return errors.New("usage: gitwork config path")
+		return errors.New("usage: totonou config path")
 	}
 
 	envPath, err := config.DefaultEnvPath()
@@ -255,14 +255,14 @@ func (a App) runToday(ctx context.Context, args []string) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: gitwork today [--no-backlog]")
+		return errors.New("usage: totonou today [--no-backlog]")
 	}
 	return a.printRecordsForCurrentBranch(ctx, *noBacklog)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
 	if len(args) == 0 || args[0] != "status" {
-		return errors.New("usage: gitwork epic status [epic-key]")
+		return errors.New("usage: totonou epic status [epic-key]")
 	}
 
 	epicKey, err := a.resolveEpicKey(ctx, args[1:])
@@ -288,7 +288,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 		return strings.ToUpper(args[0]), nil
 	}
 	if len(args) > 1 {
-		return "", errors.New("usage: gitwork epic status [epic-key]")
+		return "", errors.New("usage: totonou epic status [epic-key]")
 	}
 
 	currentBranch, err := a.Git.CurrentBranch(ctx)
@@ -298,7 +298,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 
 	epicKey, err := issueKeyFromBranch(currentBranch)
 	if err != nil {
-		return "", errors.New("usage: gitwork epic status [epic-key]")
+		return "", errors.New("usage: totonou epic status [epic-key]")
 	}
 	return epicKey, nil
 }
@@ -353,7 +353,6 @@ func (a App) confirm(question string) (bool, error) {
 	answer = strings.TrimSpace(strings.ToLower(answer))
 	return answer == "y" || answer == "yes", nil
 }
-
 
 func issueKeyFromBranch(branch string) (string, error) {
 	re := regexp.MustCompile(`[A-Za-z]+-\d+`)

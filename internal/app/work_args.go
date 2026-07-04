@@ -17,14 +17,14 @@ func parseWorkArgs(args []string) (issueKey string, team string, layer string, e
 			}
 		default:
 			if issueKey != "" {
-				return "", "", "", errors.New("usage: gitwork work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
+				return "", "", "", errors.New("usage: totonou work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
 			}
 			issueKey = args[index]
 		}
 	}
 
 	if issueKey == "" {
-		return "", "", "", errors.New("usage: gitwork work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
+		return "", "", "", errors.New("usage: totonou work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
 	}
 
 	return issueKey, team, layer, nil
@@ -32,7 +32,7 @@ func parseWorkArgs(args []string) (issueKey string, team string, layer string, e
 
 func readWorkFlagValue(args []string, index int, flagName string) (string, int, error) {
 	if index+1 >= len(args) {
-		return "", index, errors.New("usage: gitwork work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
+		return "", index, errors.New("usage: totonou work <issue-key> [--team member|admin|agency] [--layer frontend|backend]")
 	}
 	return args[index+1], index + 1, nil
 }

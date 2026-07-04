@@ -303,6 +303,15 @@ func isHelpRequest(args []string) bool {
 	}
 }
 
+func isKnownCommand(name string) bool {
+	switch name {
+	case "work", "pr", "today", "epic", "doctor":
+		return true
+	default:
+		return false
+	}
+}
+
 func helpCommandName(args []string) string {
 	if args[0] == "help" && len(args) > 1 {
 		return args[1]

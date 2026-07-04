@@ -821,6 +821,26 @@ func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
 	}
 }
 
+func TestUnknownCommandSkipsConfigLoad(t *testing.T) {
+	envPath := filepath.Join(t.TempDir(), "invalid.env")
+	if err := os.WriteFile(envPath, []byte("NOT VALID ENV\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GITWORK_ENV_FILE", envPath)
+
+	app := New(t.TempDir(), strings.NewReader(""), &bytes.Buffer{}, &bytes.Buffer{})
+	err := app.Run(context.Background(), []string{"typo-cmd"})
+	if err == nil {
+		t.Fatal("expected error for unknown command")
+	}
+	if !strings.Contains(err.Error(), "unknown command: typo-cmd") {
+		t.Fatalf("expected unknown command error, got %v", err)
+	}
+	if strings.Contains(err.Error(), "invalid env") {
+		t.Fatalf("expected config load to be skipped, got %v", err)
+	}
+}
+
 func TestInitCreatesEnvTemplateWhenConfirmed(t *testing.T) {
 	configHome := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configHome)

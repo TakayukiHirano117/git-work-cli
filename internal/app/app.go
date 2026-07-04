@@ -62,6 +62,10 @@ func (a App) Run(ctx context.Context, args []string) error {
 		return a.runInit(args[1:])
 	}
 
+	if !isKnownCommand(args[0]) {
+		return fmt.Errorf("unknown command: %s", args[0])
+	}
+
 	if a.loadDeps {
 		loaded, err := a.withDeps()
 		if err != nil {

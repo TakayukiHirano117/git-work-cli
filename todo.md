@@ -22,12 +22,12 @@
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
 - [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション。失敗時に作成済みブランチ名を明示するのが第一歩）
-- [ ] 未知コマンドでも `config.Load()` が先に走る。コマンド名の検証を `withDeps` より前に移すか検討する。（診断: `.env` 不正時にタイポの切り分けがしづらい）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
 
-- [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載。次回優先度高）
+- [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載。次回最優先）
+- [ ] `pr` / `doctor` で `GITHUB_REPO` 未設定を早期に検出し、`gh pr create` 失敗前に案内する。（診断: `ValidateGitHub` 相当がなく `doctor` も未検査）
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
@@ -39,6 +39,7 @@
 
 ## 完了済み
 
+- [x] 未知コマンドでも `config.Load()` が先に走る。`isKnownCommand` で `withDeps` より前に検証する。（`feature/automation/2026-07-04-unknown-command-before-config`）
 - [x] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（`feature/automation/2026-07-04-today-epic-plain-branch-name`）
 - [x] `.env` 形式不正時に `Load()` が行番号付きエラーを返すことをテストする。（`feature/automation/2026-07-04-invalid-env-line-number-test`）
 - [x] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（`feature/automation/2026-07-04-work-non-interactive-flags`）

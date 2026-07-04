@@ -8,7 +8,6 @@
 - [ ] `--plain` オプションを用意し、CI やスクリプトでは装飾なしの出力に切り替えられるようにする。
 - [ ] 端末が TTY のときだけ成功/警告/失敗の記号と色を付ける。
 - [ ] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `gitwork pr --dry-run` などの候補を表示する。
-- [ ] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（診断: `--json` にはあるが通常表示は課題キー・タイトル・ステータスのみ）
 - [ ] `pr` 作成前の確認画面を、PR タイトル、Backlog URL、base、作成後ステータス更新の順で見やすく表示する。
 
 ## 保守性を上げる
@@ -33,13 +32,14 @@
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
 - [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
-- [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
+- [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載。`today` の `--json` も同様）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。
 
 ## 完了済み
 
+- [x] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（`feature/automation/2026-07-04-today-epic-plain-branch-name`）
 - [x] `.env` 形式不正時に `Load()` が行番号付きエラーを返すことをテストする。（`feature/automation/2026-07-04-invalid-env-line-number-test`）
 - [x] `work` で `--team` / `--layer` 未指定かつ stdin が TTY でないとき、対話待ちせずエラーにする。（`feature/automation/2026-07-04-work-non-interactive-flags`）
 - [x] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`Load` で明示的にエラーにする。（`feature/automation/2026-07-04-invalid-done-status-id`）

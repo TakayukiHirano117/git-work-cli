@@ -453,18 +453,27 @@ func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog, json
 	return a.printRecords(ctx, records, skipBacklog)
 }
 
+func (a App) fetchIssueInfo(ctx context.Context, issueKey string, skipBacklog bool) (title, status string, err error) {
+	if skipBacklog || a.Config.ValidateBacklog() != nil {
+		return "", "", nil
+	}
+	issue, err := a.Backlog.GetIssue(ctx, issueKey)
+	if err != nil {
+		return "", "", err
+	}
+	return issue.Summary, issue.Status, nil
+}
+
+func (a App) warnBacklogFetchFailure(issueKey string, err error) {
+	fmt.Fprintf(a.Stderr, "warning: failed to fetch %s from Backlog: %v\n", issueKey, err)
+}
+
 func (a App) enrichRecords(ctx context.Context, records []store.Record, skipBacklog bool) ([]recordOutput, error) {
 	outputs := make([]recordOutput, 0, len(records))
 	for _, record := range records {
-		title := ""
-		status := ""
-		if !skipBacklog && a.Config.ValidateBacklog() == nil {
-			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
-			if err != nil {
-				return nil, err
-			}
-			title = issue.Summary
-			status = issue.Status
+		title, status, err := a.fetchIssueInfo(ctx, record.IssueKey, skipBacklog)
+		if err != nil {
+			a.warnBacklogFetchFailure(record.IssueKey, err)
 		}
 		outputs = append(outputs, recordOutput{
 			IssueKey:     record.IssueKey,
@@ -519,15 +528,14 @@ func (a App) printRecords(ctx context.Context, records []store.Record, skipBackl
 	}
 
 	for _, record := range records {
-		title := "-"
-		status := "-"
-		if !skipBacklog && a.Config.ValidateBacklog() == nil {
-			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
-			if err != nil {
-				return err
-			}
-			title = issue.Summary
-			status = issue.Status
+		title, status, err := a.fetchIssueInfo(ctx, record.IssueKey, skipBacklog)
+		if err != nil {
+			a.warnBacklogFetchFailure(record.IssueKey, err)
+			title = "-"
+			status = "-"
+		} else if skipBacklog || a.Config.ValidateBacklog() != nil {
+			title = "-"
+			status = "-"
 		}
 		fmt.Fprintf(a.Stdout, "- %s  %s  %s\n", record.IssueKey, title, status)
 	}

@@ -1156,32 +1156,52 @@ func TestPRFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
 	}
 }
 
-func TestTodayFailsWhenBacklogGetIssueReturns4xx(t *testing.T) {
+func TestTodayContinuesWhenOneBacklogFetchFails(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-103" {
+		switch r.URL.Path {
+		case "/api/v2/issues/COMMUNITY-103":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+			}
+			w.WriteHeader(http.StatusNotFound)
+		case "/api/v2/issues/COMMUNITY-104":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+			}
+			fmt.Fprint(w, `{"summary":"成功課題","status":{"name":"未着手"}}`)
+		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
-		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
 	treePath := filepath.Join(t.TempDir(), "tree.json")
 	st := store.New(treePath)
-	if err := st.Save(store.Tree{Records: []store.Record{{
-		RepoRoot:     "/repo",
-		ParentBranch: "feature/member/backend/COMMUNITY-102",
-		ChildBranch:  "feature/member/backend/COMMUNITY-103",
-		IssueKey:     "COMMUNITY-103",
-	}}}); err != nil {
+	if err := st.Save(store.Tree{Records: []store.Record{
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "feature/member/backend/COMMUNITY-102",
+			ChildBranch:  "feature/member/backend/COMMUNITY-103",
+			IssueKey:     "COMMUNITY-103",
+		},
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "feature/member/backend/COMMUNITY-102",
+			ChildBranch:  "feature/member/backend/COMMUNITY-104",
+			IssueKey:     "COMMUNITY-104",
+		},
+	}}); err != nil {
 		t.Fatal(err)
 	}
 
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 	app := App{
 		Stdin:  strings.NewReader(""),
-		Stdout: &bytes.Buffer{},
-		Stderr: &bytes.Buffer{},
+		Stdout: out,
+		Stderr: errOut,
 		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
 		Store:  st,
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -1199,44 +1219,68 @@ func TestTodayFailsWhenBacklogGetIssueReturns4xx(t *testing.T) {
 		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
 	}
 
-	err := app.Run(context.Background(), []string{"today"})
-	if err == nil {
-		t.Fatal("expected error when Backlog API returns 4xx")
+	if err := app.Run(context.Background(), []string{"today"}); err != nil {
+		t.Fatalf("expected success with partial backlog failure, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "404 Not Found") {
-		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	output := out.String()
+	if !strings.Contains(output, "COMMUNITY-103  -  -") {
+		t.Fatalf("expected placeholder for failed fetch, got %q", output)
 	}
-	if !strings.Contains(err.Error(), "/api/v2/issues/COMMUNITY-103") {
-		t.Fatalf("expected endpoint in error, got %q", err.Error())
+	if !strings.Contains(output, "COMMUNITY-104  成功課題  未着手") {
+		t.Fatalf("expected successful fetch output, got %q", output)
+	}
+	stderr := errOut.String()
+	if !strings.Contains(stderr, "COMMUNITY-103") || !strings.Contains(stderr, "404 Not Found") {
+		t.Fatalf("expected warning on stderr, got %q", stderr)
 	}
 }
 
-func TestEpicStatusFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
+func TestEpicStatusContinuesWhenOneBacklogFetchFails(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/issues/COMMUNITY-101" {
+		switch r.URL.Path {
+		case "/api/v2/issues/COMMUNITY-101":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+		case "/api/v2/issues/COMMUNITY-102":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+			}
+			fmt.Fprint(w, `{"summary":"設計書を作成","status":{"name":"完了"}}`)
+		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
-		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
 	treePath := filepath.Join(t.TempDir(), "tree.json")
 	st := store.New(treePath)
-	if err := st.Save(store.Tree{Records: []store.Record{{
-		RepoRoot:     "/repo",
-		ParentBranch: "develop",
-		ChildBranch:  "feature/member/backend/COMMUNITY-101",
-		IssueKey:     "COMMUNITY-101",
-	}}}); err != nil {
+	if err := st.Save(store.Tree{Records: []store.Record{
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "develop",
+			ChildBranch:  "feature/member/backend/COMMUNITY-101",
+			IssueKey:     "COMMUNITY-101",
+		},
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "develop",
+			ChildBranch:  "feature/member/backend/COMMUNITY-102",
+			IssueKey:     "COMMUNITY-102",
+		},
+	}}); err != nil {
 		t.Fatal(err)
 	}
 
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 	app := App{
 		Stdin:  strings.NewReader(""),
-		Stdout: &bytes.Buffer{},
-		Stderr: &bytes.Buffer{},
+		Stdout: out,
+		Stderr: errOut,
 		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
 		Store:  st,
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -1252,15 +1296,98 @@ func TestEpicStatusFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
 		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
 	}
 
-	err := app.Run(context.Background(), []string{"epic", "status", "COMMUNITY-100"})
-	if err == nil {
-		t.Fatal("expected error when Backlog API returns 5xx")
+	if err := app.Run(context.Background(), []string{"epic", "status", "COMMUNITY-100"}); err != nil {
+		t.Fatalf("expected success with partial backlog failure, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "500 Internal Server Error") {
-		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	output := out.String()
+	if !strings.Contains(output, "COMMUNITY-101  -  -") {
+		t.Fatalf("expected placeholder for failed fetch, got %q", output)
 	}
-	if !strings.Contains(err.Error(), "/api/v2/issues/COMMUNITY-101") {
-		t.Fatalf("expected endpoint in error, got %q", err.Error())
+	if !strings.Contains(output, "COMMUNITY-102  設計書を作成  完了") {
+		t.Fatalf("expected successful fetch output, got %q", output)
+	}
+	stderr := errOut.String()
+	if !strings.Contains(stderr, "COMMUNITY-101") || !strings.Contains(stderr, "500 Internal Server Error") {
+		t.Fatalf("expected warning on stderr, got %q", stderr)
+	}
+}
+
+func TestTodayJSONContinuesWhenOneBacklogFetchFails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/issues/COMMUNITY-103":
+			w.WriteHeader(http.StatusNotFound)
+		case "/api/v2/issues/COMMUNITY-104":
+			fmt.Fprint(w, `{"summary":"成功課題","status":{"name":"未着手"}}`)
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	treePath := filepath.Join(t.TempDir(), "tree.json")
+	st := store.New(treePath)
+	if err := st.Save(store.Tree{Records: []store.Record{
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "feature/member/backend/COMMUNITY-102",
+			ChildBranch:  "feature/member/backend/COMMUNITY-103",
+			IssueKey:     "COMMUNITY-103",
+		},
+		{
+			RepoRoot:     "/repo",
+			ParentBranch: "feature/member/backend/COMMUNITY-102",
+			ChildBranch:  "feature/member/backend/COMMUNITY-104",
+			IssueKey:     "COMMUNITY-104",
+		},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: out,
+		Stderr: errOut,
+		Config: config.Config{BacklogSpaceURL: server.URL, BacklogAPIKey: "secret"},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			switch command {
+			case "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	if err := app.Run(context.Background(), []string{"today", "--json"}); err != nil {
+		t.Fatalf("expected success with partial backlog failure, got %v", err)
+	}
+
+	var payload todayJSONOutput
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Children) != 2 {
+		t.Fatalf("expected 2 children, got %d", len(payload.Children))
+	}
+	if payload.Children[0].IssueKey != "COMMUNITY-103" || payload.Children[0].Title != "" || payload.Children[0].Status != "" {
+		t.Fatalf("expected empty title/status for failed fetch, got %+v", payload.Children[0])
+	}
+	if payload.Children[1].IssueKey != "COMMUNITY-104" || payload.Children[1].Title != "成功課題" || payload.Children[1].Status != "未着手" {
+		t.Fatalf("unexpected successful child: %+v", payload.Children[1])
+	}
+	if !strings.Contains(errOut.String(), "COMMUNITY-103") {
+		t.Fatalf("expected warning on stderr, got %q", errOut.String())
 	}
 }
 

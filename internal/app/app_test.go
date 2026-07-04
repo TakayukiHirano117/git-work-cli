@@ -318,12 +318,83 @@ func TestConfigPathRejectsUnknownSubcommand(t *testing.T) {
 func TestIssueKeyFromBranch(t *testing.T) {
 	t.Parallel()
 
-	issueKey, err := issueKeyFromBranch("feature/member/backend/COMMUNITY-102")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name    string
+		branch  string
+		wantKey string
+		wantErr string
+	}{
+		{
+			name:    "standard work branch",
+			branch:  "feature/member/backend/COMMUNITY-102",
+			wantKey: "COMMUNITY-102",
+		},
+		{
+			name:    "lowercase issue key",
+			branch:  "feature/admin/frontend/community-200",
+			wantKey: "COMMUNITY-200",
+		},
+		{
+			name:    "missing issue key",
+			branch:  "feature/member/backend",
+			wantErr: `issue key not found in branch "feature/member/backend" (expected format, e.g. feature/member/backend/COMMUNITY-102)`,
+		},
 	}
-	if issueKey != "COMMUNITY-102" {
-		t.Fatalf("unexpected issue key: %s", issueKey)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			issueKey, err := issueKeyFromBranch(tt.branch)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				if err.Error() != tt.wantErr {
+					t.Fatalf("unexpected error: %q", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if issueKey != tt.wantKey {
+				t.Fatalf("unexpected issue key: %s", issueKey)
+			}
+		})
+	}
+}
+
+func TestPRShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
+	t.Parallel()
+
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     "https://example.backlog.com",
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+		},
+		Store:  store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			if name+" "+strings.Join(args, " ") == "git branch --show-current" {
+				return "feature/member/backend", nil
+			}
+			t.Fatalf("unexpected command: %s %v", name, args)
+			return "", nil
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"pr"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	want := `issue key not found in branch "feature/member/backend" (expected format, e.g. feature/member/backend/COMMUNITY-102)`
+	if err.Error() != want {
+		t.Fatalf("unexpected error: %q", err.Error())
 	}
 }
 

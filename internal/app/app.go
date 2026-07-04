@@ -340,7 +340,12 @@ func issueKeyFromBranch(branch string) (string, error) {
 	re := regexp.MustCompile(`[A-Za-z]+-\d+`)
 	match := re.FindString(branch)
 	if match == "" {
-		return "", fmt.Errorf("issue key not found in branch: %s", branch)
+		example := workBranchName("member", "backend", "COMMUNITY-102")
+		return "", fmt.Errorf(
+			"issue key not found in branch %q (expected format, e.g. %s)",
+			branch,
+			example,
+		)
 	}
 	return strings.ToUpper(match), nil
 }

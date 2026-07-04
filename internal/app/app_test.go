@@ -1156,6 +1156,82 @@ func TestPRFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
 	}
 }
 
+func TestPRBacklogUpdateFailureAfterPushAndCreate(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("apiKey") != "secret" {
+			t.Fatalf("missing api key")
+		}
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/issues/COMMUNITY-102":
+			writeJSON(t, w, map[string]interface{}{
+				"issueKey": "COMMUNITY-102",
+				"summary":  "API利用画面を実装",
+				"status": map[string]interface{}{
+					"name": "対応中",
+				},
+			})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v2/issues/COMMUNITY-102":
+			w.WriteHeader(http.StatusBadGateway)
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	var commands []string
+	out := &bytes.Buffer{}
+	app := App{
+		Stdin:  strings.NewReader("y\n"),
+		Stdout: out,
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     server.URL,
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+			DefaultBase:         "develop",
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch {
+			case command == "git branch --show-current":
+				return "feature/member/backend/COMMUNITY-102", nil
+			case command == "git push -u origin feature/member/backend/COMMUNITY-102":
+				return "", nil
+			case strings.HasPrefix(command, "gh pr create "):
+				return "https://github.com/example/repo/pull/1", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+		Backlog: backlog.Client{SpaceURL: server.URL, APIKey: "secret", HTTPClient: server.Client()},
+	}
+
+	err := app.Run(context.Background(), []string{"pr"})
+	if err == nil {
+		t.Fatal("expected error when Backlog status update fails")
+	}
+	if !strings.Contains(err.Error(), "git push and pull request were already created") {
+		t.Fatalf("expected partial success hint in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "Backlog status update failed") {
+		t.Fatalf("expected Backlog failure context in error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "502 Bad Gateway") {
+		t.Fatalf("expected HTTP status in error, got %q", err.Error())
+	}
+	if !strings.Contains(out.String(), "https://github.com/example/repo/pull/1") {
+		t.Fatalf("expected PR URL in output, got %q", out.String())
+	}
+	if len(commands) != 3 {
+		t.Fatalf("expected push and PR creation before Backlog failure, got %d: %v", len(commands), commands)
+	}
+}
+
 func TestTodayContinuesWhenOneBacklogFetchFails(t *testing.T) {
 	t.Parallel()
 

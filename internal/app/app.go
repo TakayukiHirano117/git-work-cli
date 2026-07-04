@@ -241,7 +241,7 @@ func (a App) runPR(ctx context.Context, args []string) error {
 	fmt.Fprintln(a.Stdout, output)
 
 	if err := a.Backlog.UpdateIssueStatus(ctx, issueKey, a.Config.BacklogDoneStatusID); err != nil {
-		return err
+		return fmt.Errorf("git push and pull request were already created; Backlog status update failed: %w", err)
 	}
 	fmt.Fprintf(a.Stdout, "updated Backlog status: %s\n", issueKey)
 	return nil

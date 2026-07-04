@@ -20,16 +20,14 @@
 - [ ] `Config` に `ValidatePR`、`ValidateToday` など用途別の検証関数を追加し、必要な設定だけを明確にする。
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
-- [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`）
+- [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回優先度高）
 - [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: Git 操作と記録が非トランザクション）
-- [ ] `pr` で PR 作成後に Backlog 更新が失敗したとき、ユーザー向けの案内を改善する。（診断: push/PR 実行済みであることをエラーに含める。部分失敗で状態が不整合になりうる。次回優先度高）
-- [ ] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（診断: 案内改善 TODO とセットで部分失敗を検証したい。優先度高）
 - [ ] `BACKLOG_DONE_STATUS_ID` が数値でない場合に黙って無視される。`doctor` や `Load` で明示的にエラーにするか検討する。（診断: `strconv.Atoi` 失敗時に 0 のまま残る）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
 
-- [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載）
+- [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載。次回優先度高）
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
 - [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
@@ -41,6 +39,8 @@
 
 ## 完了済み
 
+- [x] `pr` で PR 作成後に Backlog 更新が失敗したとき、ユーザー向けの案内を改善する。push/PR 実行済みであることをエラーに含める。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）
+- [x] `pr` で Backlog 更新失敗時に push/PR が実行済みであることをテストする。（`feature/automation/2026-07-04-pr-backlog-update-failure-hint`）
 - [x] `today` / `epic status` で一部の Backlog 取得が失敗しても、他の記録は表示を続ける。失敗分は stderr に warning を出し、plain 出力では `-`、JSON では空の title/status で残す。（`feature/automation/2026-07-04-partial-backlog-failure`）
 - [x] `epic status <epic-key>` にも課題キー形式の検証を追加する。`parseIssueKey` を再利用し、不正キーを早期に弾く。（`feature/automation/2026-07-04-epic-issue-key-validation`）
 - [x] `work` に課題キー形式の検証を追加する。`pr` / `epic status` と同様に `COMMUNITY-102` 形式を要求し、不正キーではブランチを作らない。（`feature/automation/2026-07-04-work-issue-key-validation`）

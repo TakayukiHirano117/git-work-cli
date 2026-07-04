@@ -4,7 +4,6 @@
 
 - [ ] `gitwork init` を追加し、`.env` の雛形作成と保存先表示を対話形式で行えるようにする。（現行設定は `.env` ベース。`config.json` ではない）
 - [ ] `gitwork doctor` を追加し、Git リポジトリ内か、`gh` がログイン済みか、Backlog 設定が揃っているかをまとめて検査する。
-- [ ] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。
 - [ ] `gitwork today` と `gitwork epic status` に `--json` を追加し、他のツールやスクリプトから扱いやすくする。
 - [ ] （推測）`gitwork epic status` で課題キーが取れないときも、`pr` と同様に期待するブランチ名例をエラーに含める。
 
@@ -29,7 +28,6 @@
 
 ## テストを増やす
 
-- [ ] `gitwork pr --dry-run` が Git push、`gh pr create`、Backlog 更新を実行しないことをテストする。
 - [ ] `gitwork pr --yes` が確認プロンプトを省略することをテストする。
 - [ ] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。
 - [ ] `tree.json` が壊れている場合のエラー文と復旧方針をテストする。
@@ -53,3 +51,5 @@
 - [x] `issueKeyFromBranch` の複数パターンをテーブルテスト化する。（`feature/automation/2026-07-04-pr-issue-key-hint`）
 - [x] `work` 実行時に同名ブランチがすでに記録されている場合、記録済みの親ブランチも表示する。（`feature/automation/2026-07-04-work-duplicate-parent-hint`）
 - [x] `gitwork today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。（`feature/automation/2026-07-04-today-no-backlog`）
+- [x] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。（`feature/automation/2026-07-04-pr-dry-run-output`）
+- [x] `gitwork pr --dry-run` が Git push、`gh pr create`、Backlog 更新を実行しないことをテストする。（`feature/automation/2026-07-04-pr-dry-run-output`）

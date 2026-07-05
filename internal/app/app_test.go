@@ -24,10 +24,11 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 	t.Parallel()
 
 	st := store.New(filepath.Join(t.TempDir(), "tree.json"))
+	stdout := &bytes.Buffer{}
 	var commands []string
 	app := App{
 		Stdin:  strings.NewReader(""),
-		Stdout: &bytes.Buffer{},
+		Stdout: stdout,
 		Stderr: &bytes.Buffer{},
 		Store:  st,
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -49,6 +50,14 @@ func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
 
 	if err := app.Run(context.Background(), []string{"work", "community-102", "--team", "member", "--layer", "backend"}); err != nil {
 		t.Fatal(err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "created feature/member/backend/COMMUNITY-102 from feature/member/backend/COMMUNITY-101") {
+		t.Fatalf("unexpected stdout: %q", output)
+	}
+	if !strings.Contains(output, "totonou pr --dry-run") {
+		t.Fatalf("expected next-step hint in stdout: %q", output)
 	}
 
 	tree, err := st.Load()
@@ -851,7 +860,7 @@ func TestUnknownCommandSkipsConfigLoad(t *testing.T) {
 	if err := os.WriteFile(envPath, []byte("NOT VALID ENV\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("GITWORK_ENV_FILE", envPath)
+	t.Setenv("TOTONOU_ENV_FILE", envPath)
 
 	app := New(t.TempDir(), strings.NewReader(""), &bytes.Buffer{}, &bytes.Buffer{})
 	err := app.Run(context.Background(), []string{"typo-cmd"})
@@ -881,7 +890,7 @@ func TestInitCreatesEnvTemplateWhenConfirmed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	envPath := filepath.Join(configHome, "gitwork", ".env")
+	envPath := filepath.Join(configHome, "totonou", ".env")
 	data, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
@@ -917,7 +926,7 @@ func TestInitSkipsCreationWhenDeclined(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	envPath := filepath.Join(configHome, "gitwork", ".env")
+	envPath := filepath.Join(configHome, "totonou", ".env")
 	if _, err := os.Stat(envPath); !os.IsNotExist(err) {
 		t.Fatalf("expected no env file, got err=%v", err)
 	}
@@ -925,7 +934,7 @@ func TestInitSkipsCreationWhenDeclined(t *testing.T) {
 
 func TestInitDoesNotOverwriteExistingEnv(t *testing.T) {
 	configHome := t.TempDir()
-	configDir := filepath.Join(configHome, "gitwork")
+	configDir := filepath.Join(configHome, "totonou")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
 		t.Fatal(err)
 	}

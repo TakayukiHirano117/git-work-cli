@@ -171,7 +171,7 @@ func TestLoadRejectsInvalidEnvFileWithLineNumber(t *testing.T) {
 	}
 
 	clearConfigEnv(t)
-	t.Setenv("GITWORK_ENV_FILE", envPath)
+	t.Setenv("TOTONOU_ENV_FILE", envPath)
 
 	_, err := Load()
 	if err == nil {
@@ -192,7 +192,7 @@ func TestLoadRejectsInvalidDoneStatusInEnvFile(t *testing.T) {
 	}
 
 	clearConfigEnv(t)
-	t.Setenv("GITWORK_ENV_FILE", envPath)
+	t.Setenv("TOTONOU_ENV_FILE", envPath)
 
 	_, err := Load()
 	if err == nil {

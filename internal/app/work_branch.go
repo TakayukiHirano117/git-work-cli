@@ -16,6 +16,12 @@ func workBranchName(team string, layer string, issueKey string) string {
 	return fmt.Sprintf("feature/%s/%s/%s", team, layer, strings.ToUpper(issueKey))
 }
 
+func printWorkSuccess(stdout io.Writer, childBranch, parentBranch string) {
+	fmt.Fprintf(stdout, "created %s from %s\n", childBranch, parentBranch)
+	fmt.Fprintln(stdout, "next:")
+	fmt.Fprintln(stdout, "  totonou pr --dry-run")
+}
+
 var stdinIsTTY = defaultStdinIsTTY
 
 func defaultStdinIsTTY(r io.Reader) bool {

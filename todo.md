@@ -6,7 +6,6 @@
 
 - [ ] `--plain` オプションを用意し、CI やスクリプトでは装飾なしの出力に切り替えられるようにする。
 - [ ] 端末が TTY のときだけ成功/警告/失敗の記号と色を付ける。
-- [ ] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `gitwork pr --dry-run` などの候補を表示する。（診断: 実装は1行出力のみ。小さく安全に着手しやすい）
 - [ ] `pr` 作成前の確認画面を、PR タイトル、Backlog URL、base、作成後ステータス更新の順で見やすく表示する。
 
 ## 保守性を上げる
@@ -20,14 +19,14 @@
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
+- [ ] `init` が生成する `.env` 雛形の環境変数名が実装と不一致（`GITWORK_*` / `GITWORK_ENV_FILE` と `TOTONOU_*` の混在）。雛形と help を `TOTONOU_*` に揃える。（診断: `config.EnvTemplate()` L174-175 と `applyEnv` が読む変数名がずれている。次回最優先候補）
 - [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: `CreateBranch` 後に `Store.Add` が失敗するとブランチだけ残る。エラーに作成済みブランチ名を含めるのが第一歩）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
 
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
-- [ ] `README.md` に `config path` の説明を追記する。（診断: First-time Setup には追記済みだが Commands 節には未記載）
-- [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
+- [ ] `README.md` / `help` / エラーメッセージの `gitwork` 表記を `totonou` に統一し、設定ディレクトリパス例も `totonou` に揃える。（診断: 実装は `config.appDirName = "totonou"` だが README First-time Setup 等に `gitwork` が残る）
 - [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
 - [ ] `pr --dry-run` が `GITHUB_REPO` 未設定でも PR プレビューできるようにするか検討する。（診断: `ValidateGitHub` が dry-run 前に走る。現状は早期検出を優先）
 - [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプの `today` には `--json` が未記載）
@@ -38,6 +37,8 @@
 
 ## 完了済み
 
+- [x] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `totonou pr --dry-run` などの候補を表示する。（`feature/automation/2026-07-05-work-next-steps`）
+- [x] `README.md` に `config path` の説明を追記する。（診断: Commands 節 L151-157 に既に記載済みのため整理）
 - [x] `help` の doctor 説明に `github config` 検査を追記する。（`feature/automation/2026-07-05-help-doctor-github-config`）
 - [x] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（`feature/automation/2026-07-05-readme-setup`）
 - [x] `pr` / `doctor` で `GITHUB_REPO` 未設定を早期に検出し、`gh pr create` 失敗前に案内する。（`feature/automation/2026-07-05-github-repo-validation`）

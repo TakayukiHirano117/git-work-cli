@@ -184,7 +184,7 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		return err
 	}
 
-	fmt.Fprintf(a.Stdout, "created %s from %s\n", childBranch, parentBranch)
+	printWorkSuccess(a.Stdout, childBranch, parentBranch)
 	return nil
 }
 

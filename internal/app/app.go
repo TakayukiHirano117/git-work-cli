@@ -260,7 +260,7 @@ func (a App) runPR(ctx context.Context, args []string) error {
 
 func (a App) runDoctor(ctx context.Context, args []string) error {
 	if len(args) != 0 {
-		return errors.New("usage: gitwork doctor")
+		return errors.New("usage: totonou doctor")
 	}
 
 	failed := 0
@@ -302,7 +302,7 @@ func (a App) runDoctor(ctx context.Context, args []string) error {
 
 func (a App) runInit(args []string) error {
 	if len(args) != 0 {
-		return errors.New("usage: gitwork init")
+		return errors.New("usage: totonou init")
 	}
 
 	envPath, err := config.DefaultEnvPath()
@@ -314,13 +314,13 @@ func (a App) runInit(args []string) error {
 		return err
 	}
 
-	fmt.Fprintln(a.Stdout, "gitwork の設定ファイルは次の場所に保存されます:")
+	fmt.Fprintln(a.Stdout, "totonou の設定ファイルは次の場所に保存されます:")
 	fmt.Fprintf(a.Stdout, "  config: %s\n", envPath)
 	fmt.Fprintf(a.Stdout, "  tree:   %s\n\n", treePath)
 
 	if _, err := os.Stat(envPath); err == nil {
 		fmt.Fprintf(a.Stdout, ".env は既に存在します: %s\n", envPath)
-		fmt.Fprintln(a.Stdout, "編集後は gitwork doctor で設定を確認できます。")
+		fmt.Fprintln(a.Stdout, "編集後は totonou doctor で設定を確認できます。")
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -340,7 +340,7 @@ func (a App) runInit(args []string) error {
 	}
 
 	fmt.Fprintf(a.Stdout, "created %s\n", envPath)
-	fmt.Fprintln(a.Stdout, "値を編集したあと、gitwork doctor で設定を確認できます。")
+	fmt.Fprintln(a.Stdout, "値を編集したあと、totonou doctor で設定を確認できます。")
 	return nil
 }
 
@@ -372,14 +372,14 @@ func (a App) runToday(ctx context.Context, args []string) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: gitwork today [--no-backlog] [--json]")
+		return errors.New("usage: totonou today [--no-backlog] [--json]")
 	}
 	return a.printRecordsForCurrentBranch(ctx, *noBacklog, *jsonOutput)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
 	if len(args) == 0 || args[0] != "status" {
-		return errors.New("usage: gitwork epic status [--no-backlog] [--json] [epic-key]")
+		return errors.New("usage: totonou epic status [--no-backlog] [--json] [epic-key]")
 	}
 
 	fs := flag.NewFlagSet("epic status", flag.ContinueOnError)

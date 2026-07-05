@@ -40,6 +40,7 @@
 
 ## 完了済み
 
+- [x] `help` の doctor 説明に `github config` 検査を追記する。（`feature/automation/2026-07-05-help-doctor-github-config`）
 - [x] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（`feature/automation/2026-07-05-readme-setup`）
 - [x] `pr` / `doctor` で `GITHUB_REPO` 未設定を早期に検出し、`gh pr create` 失敗前に案内する。（`feature/automation/2026-07-05-github-repo-validation`）
 - [x] 未知コマンドでも `config.Load()` が先に走る。`isKnownCommand` で `withDeps` より前に検証する。（`feature/automation/2026-07-04-unknown-command-before-config`）

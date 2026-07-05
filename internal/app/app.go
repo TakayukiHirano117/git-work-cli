@@ -200,6 +200,9 @@ func (a App) runPR(ctx context.Context, args []string) error {
 	if err := a.Config.ValidateDoneStatus(); err != nil {
 		return err
 	}
+	if err := a.Config.ValidateGitHub(); err != nil {
+		return err
+	}
 
 	currentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
@@ -282,6 +285,13 @@ func (a App) runDoctor(ctx context.Context, args []string) error {
 		failed++
 	} else {
 		fmt.Fprintln(a.Stdout, "backlog config: ok")
+	}
+
+	if err := a.Config.ValidateGitHub(); err != nil {
+		fmt.Fprintf(a.Stdout, "github config: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "github config: ok")
 	}
 
 	if failed > 0 {

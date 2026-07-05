@@ -203,6 +203,27 @@ func TestLoadRejectsInvalidDoneStatusInEnvFile(t *testing.T) {
 	}
 }
 
+func TestValidateGitHubReportsMissingRepo(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{}
+	if err := cfg.ValidateGitHub(); err == nil {
+		t.Fatal("expected error for missing GITHUB_REPO")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_REPO") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateGitHubAcceptsConfiguredRepo(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{GitHubRepo: "owner/repo"}
+	if err := cfg.ValidateGitHub(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func clearConfigEnv(t *testing.T) {
 	t.Helper()
 

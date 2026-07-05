@@ -298,6 +298,7 @@ func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
 			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
 		},
 		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -375,6 +376,7 @@ func TestPRYesSkipsConfirmationPrompt(t *testing.T) {
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
 			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
 		},
 		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -453,6 +455,7 @@ func TestPRNoCancelsCreation(t *testing.T) {
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
 			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
 		},
 		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -955,6 +958,7 @@ func TestDoctorAllChecksPass(t *testing.T) {
 			BacklogSpaceURL:     "https://example.backlog.com",
 			BacklogAPIKey:       "key",
 			BacklogDoneStatusID: 5,
+			GitHubRepo:          "owner/repo",
 		},
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
 			command := name + " " + strings.Join(args, " ")
@@ -980,6 +984,7 @@ func TestDoctorAllChecksPass(t *testing.T) {
 		"git repository: ok (/repo)",
 		"gh auth: ok",
 		"backlog config: ok",
+		"github config: ok",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected output to contain %q, got %q", want, output)
@@ -1013,7 +1018,7 @@ func TestDoctorReportsFailures(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected doctor to fail when checks fail")
 	}
-	if !strings.Contains(err.Error(), "3 check(s) failed") {
+	if !strings.Contains(err.Error(), "4 check(s) failed") {
 		t.Fatalf("expected failure count in error, got %q", err.Error())
 	}
 
@@ -1022,6 +1027,7 @@ func TestDoctorReportsFailures(t *testing.T) {
 		"git repository: not ok",
 		"gh auth: not ok",
 		"backlog config: not ok",
+		"github config: not ok",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected output to contain %q, got %q", want, output)
@@ -1038,6 +1044,40 @@ func TestDoctorRejectsExtraArgs(t *testing.T) {
 	}
 	if err := app.Run(context.Background(), []string{"doctor", "--verbose"}); err == nil {
 		t.Fatal("expected error for extra doctor args")
+	}
+}
+
+func TestPRFailsWhenGitHubRepoMissing(t *testing.T) {
+	t.Parallel()
+
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Config: config.Config{
+			BacklogSpaceURL:     "https://example.backlog.com",
+			BacklogAPIKey:       "secret",
+			BacklogDoneStatusID: 5,
+		},
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			t.Fatalf("unexpected command: %s", command)
+			return "", nil
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"pr"})
+	if err == nil {
+		t.Fatal("expected error for missing GITHUB_REPO")
+	}
+	if !strings.Contains(err.Error(), "GITHUB_REPO") {
+		t.Fatalf("unexpected error: %q", err.Error())
+	}
+	if len(commands) != 0 {
+		t.Fatalf("expected no git commands before config validation, got %d: %v", len(commands), commands)
 	}
 }
 
@@ -1103,6 +1143,7 @@ func TestPRShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
 			BacklogSpaceURL:     "https://example.backlog.com",
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
+			GitHubRepo:          "owner/repo",
 		},
 		Store:  store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -1200,6 +1241,7 @@ func TestPRFailsWhenBacklogGetIssueReturns5xx(t *testing.T) {
 			BacklogSpaceURL:     server.URL,
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
+			GitHubRepo:          "owner/repo",
 		},
 		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
@@ -1264,6 +1306,7 @@ func TestPRBacklogUpdateFailureAfterPushAndCreate(t *testing.T) {
 			BacklogAPIKey:       "secret",
 			BacklogDoneStatusID: 5,
 			DefaultBase:         "develop",
+			GitHubRepo:          "owner/repo",
 		},
 		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {

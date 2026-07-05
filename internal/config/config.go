@@ -159,6 +159,13 @@ func (c Config) ValidateDoneStatus() error {
 	return nil
 }
 
+func (c Config) ValidateGitHub() error {
+	if c.GitHubRepo == "" {
+		return errors.New("missing GitHub config in .env: GITHUB_REPO")
+	}
+	return nil
+}
+
 func EnvTemplate() string {
 	return `BACKLOG_SPACE_URL=https://example.backlog.com
 BACKLOG_API_KEY=your-api-key

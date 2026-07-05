@@ -67,7 +67,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     例: gitwork init
 
   doctor
-    Git リポジトリ、gh 認証、Backlog 設定をまとめて検査します。
+    Git リポジトリ、gh 認証、Backlog 設定、GitHub 設定 (GITHUB_REPO) をまとめて検査します。
     初回セットアップ後やトラブル時の確認に使います。
     例: gitwork doctor
 
@@ -199,11 +199,13 @@ func (a App) printCommandHelp(command string) {
   1. 現在のディレクトリが Git リポジトリ内か
   2. GitHub CLI (gh) がログイン済みか
   3. Backlog 設定 (.env) が pr 実行に必要な項目まで揃っているか
+  4. GitHub 設定 (.env の GITHUB_REPO) が pr 実行に必要な項目まで揃っているか
 
 表示例:
   git repository: ok (/path/to/repo)
   gh auth: ok
   backlog config: ok
+  github config: ok
 
 いずれかが失敗した場合は終了コード 1 で終了します。
 設定ファイルの場所は gitwork config path で確認できます。

@@ -789,6 +789,28 @@ func TestHelpPrintsConfigSubcommandUsage(t *testing.T) {
 	}
 }
 
+func TestHelpPrintsDoctorSubcommandUsage(t *testing.T) {
+	t.Parallel()
+
+	out := &bytes.Buffer{}
+	app := App{Stdout: out, loadDeps: false}
+
+	if err := app.Run(context.Background(), []string{"help", "doctor"}); err != nil {
+		t.Fatal(err)
+	}
+	output := out.String()
+	for _, want := range []string{
+		"github config",
+		"GITHUB_REPO",
+		"backlog config",
+		"gh auth",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected doctor help to contain %q, got %q", want, output)
+		}
+	}
+}
+
 func TestConfigPathPrintsConfigAndTreeLocations(t *testing.T) {
 	t.Parallel()
 

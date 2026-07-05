@@ -207,7 +207,8 @@ func TestValidateGitHubReportsMissingRepo(t *testing.T) {
 	t.Parallel()
 
 	cfg := Config{}
-	if err := cfg.ValidateGitHub(); err == nil {
+	err := cfg.ValidateGitHub()
+	if err == nil {
 		t.Fatal("expected error for missing GITHUB_REPO")
 	}
 	if !strings.Contains(err.Error(), "GITHUB_REPO") {

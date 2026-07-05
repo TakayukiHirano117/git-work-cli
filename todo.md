@@ -19,16 +19,15 @@
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
-- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: `CreateBranch` 後に `Store.Add` が失敗するとブランチだけ残る。エラーに作成済みブランチ名を含めるのが第一歩。次回最優先候補）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
 
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
-- [ ] `README.md` / `help` / エラーメッセージの `gitwork` 表記を `totonou` に統一し、設定ディレクトリパス例も `totonou` に揃える。（診断: 実装は `config.appDirName = "totonou"` だが README First-time Setup 等に `gitwork` が残る）
+- [ ] `README.md` / `help` / エラーメッセージの `gitwork` 表記を `totonou` に統一し、設定ディレクトリパス例も `totonou` に揃える。（診断: `app.go` / `help.go` / `store.go` / `README.md` に残存。次回最優先候補）
 - [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
 - [ ] `pr --dry-run` が `GITHUB_REPO` 未設定でも PR プレビューできるようにするか検討する。（診断: `ValidateGitHub` が dry-run 前に走る。現状は早期検出を優先）
-- [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプの `today` には `--json` が未記載）
+- [ ] `help` の一般説明に `today` の `--json` オプションを追記する。（診断: 一般ヘルプの `today` には `--no-backlog` のみ。`epic status` は `--json` 記載済み）
 - [ ] `help` の一般説明に `work` の `--team` / `--layer` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/totonou@latest` で入れられる形を目標にする。
@@ -36,6 +35,7 @@
 
 ## 完了済み
 
+- [x] `work` でブランチ作成後に `tree.json` 記録が失敗した場合、エラーに作成済みブランチ名と復旧ヒントを含める。（`feature/automation/2026-07-05-work-store-add-failure-hint`）
 - [x] `init` が生成する `.env` 雛形の環境変数名が実装と不一致（`GITWORK_*` / `GITWORK_ENV_FILE` と `TOTONOU_*` の混在）。雛形と help を `TOTONOU_*` に揃える。（`feature/automation/2026-07-05-init-env-template-totonou`）
 - [x] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `totonou pr --dry-run` などの候補を表示する。（`feature/automation/2026-07-05-work-next-steps`）
 - [x] `README.md` に `config path` の説明を追記する。（診断: Commands 節 L151-157 に既に記載済みのため整理）

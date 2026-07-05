@@ -264,6 +264,61 @@ func TestWorkShowsParentWhenBranchAlreadyRecorded(t *testing.T) {
 	}
 }
 
+func TestWorkStoreAddFailureIncludesCreatedBranch(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	treePath := filepath.Join(dir, "tree.json")
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(dir, 0o755)
+	})
+	st := store.New(treePath)
+
+	var commands []string
+	app := App{
+		Stdin:  strings.NewReader(""),
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+		Store:  st,
+		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
+			command := name + " " + strings.Join(args, " ")
+			commands = append(commands, command)
+			switch command {
+			case "git branch --show-current":
+				return "develop", nil
+			case "git rev-parse --show-toplevel":
+				return "/repo", nil
+			case "git switch -c feature/member/backend/COMMUNITY-102":
+				return "", nil
+			default:
+				t.Fatalf("unexpected command: %s", command)
+				return "", nil
+			}
+		}},
+	}
+
+	err := app.Run(context.Background(), []string{"work", "COMMUNITY-102", "--team", "member", "--layer", "backend"})
+	if err == nil {
+		t.Fatal("expected store add failure error")
+	}
+	errText := err.Error()
+	if !strings.Contains(errText, "feature/member/backend/COMMUNITY-102") {
+		t.Fatalf("expected created branch in error, got %q", errText)
+	}
+	if !strings.Contains(errText, "tree.json was not updated") {
+		t.Fatalf("expected tree.json hint in error, got %q", errText)
+	}
+	if !strings.Contains(errText, "delete it before retrying") {
+		t.Fatalf("expected recovery hint in error, got %q", errText)
+	}
+	if len(commands) != 3 {
+		t.Fatalf("expected branch creation before store failure, got %d commands: %v", len(commands), commands)
+	}
+}
+
 func TestPRCreatesPullRequestAndUpdatesBacklog(t *testing.T) {
 	t.Parallel()
 

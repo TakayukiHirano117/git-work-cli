@@ -22,6 +22,14 @@ func printWorkSuccess(stdout io.Writer, childBranch, parentBranch string) {
 	fmt.Fprintln(stdout, "  totonou pr --dry-run")
 }
 
+func workStoreAddError(childBranch string, err error) error {
+	return fmt.Errorf(
+		"branch %s was created but tree.json was not updated: %w; switch to the branch to continue work or delete it before retrying",
+		childBranch,
+		err,
+	)
+}
+
 var stdinIsTTY = defaultStdinIsTTY
 
 func defaultStdinIsTTY(r io.Reader) bool {

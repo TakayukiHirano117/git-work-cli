@@ -181,7 +181,7 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		CreatedAt:    time.Now(),
 	}
 	if err := a.Store.Add(record); err != nil {
-		return err
+		return workStoreAddError(childBranch, err)
 	}
 
 	printWorkSuccess(a.Stdout, childBranch, parentBranch)

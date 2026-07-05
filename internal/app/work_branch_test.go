@@ -8,6 +8,22 @@ import (
 	"testing"
 )
 
+func TestWorkStoreAddErrorIncludesBranchAndHint(t *testing.T) {
+	t.Parallel()
+
+	err := workStoreAddError("feature/member/backend/COMMUNITY-102", io.EOF)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	text := err.Error()
+	if !strings.Contains(text, "feature/member/backend/COMMUNITY-102") {
+		t.Fatalf("expected branch name in error, got %q", text)
+	}
+	if !strings.Contains(text, "tree.json was not updated") {
+		t.Fatalf("expected tree.json hint in error, got %q", text)
+	}
+}
+
 func TestWorkBranchName(t *testing.T) {
 	t.Parallel()
 
@@ -52,6 +68,10 @@ func TestNormalizeWorkTeamRejectsUnknownValue(t *testing.T) {
 
 func TestRequireWorkFlagsForNonInteractiveRejectsMissingFlags(t *testing.T) {
 	t.Parallel()
+
+	old := stdinIsTTY
+	stdinIsTTY = func(io.Reader) bool { return false }
+	t.Cleanup(func() { stdinIsTTY = old })
 
 	err := requireWorkFlagsForNonInteractive("", "", strings.NewReader(""))
 	if err == nil {

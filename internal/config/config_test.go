@@ -28,15 +28,15 @@ func TestLoadReadsSettingsFromEnvFile(t *testing.T) {
 BACKLOG_API_KEY=secret-from-env
 BACKLOG_DONE_STATUS_ID=5
 GITHUB_REPO=owner/repo
-GITWORK_DEFAULT_BASE=main
-GITWORK_BRANCH_PATTERN=feature/test/{issueKey}
-GITWORK_PROJECT_KEY=TEST
+TOTONOU_DEFAULT_BASE=main
+TOTONOU_BRANCH_PATTERN=feature/test/{issueKey}
+TOTONOU_PROJECT_KEY=TEST
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	clearConfigEnv(t)
-	t.Setenv("GITWORK_ENV_FILE", envPath)
+	t.Setenv("TOTONOU_ENV_FILE", envPath)
 
 	cfg, err := Load()
 	if err != nil {
@@ -58,7 +58,7 @@ GITWORK_PROJECT_KEY=TEST
 
 func TestLoadUsesDefaultBranchPatternWhenEnvIsMissing(t *testing.T) {
 	clearConfigEnv(t)
-	t.Setenv("GITWORK_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
+	t.Setenv("TOTONOU_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
 
 	cfg, err := Load()
 	if err != nil {
@@ -122,7 +122,7 @@ func TestLoadEnvFileDoesNotOverrideExistingEnvironmentVariables(t *testing.T) {
 
 func TestLoadRejectsInvalidDoneStatusEnvironment(t *testing.T) {
 	clearConfigEnv(t)
-	t.Setenv("GITWORK_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
+	t.Setenv("TOTONOU_ENV_FILE", filepath.Join(t.TempDir(), "missing.env"))
 	t.Setenv("BACKLOG_DONE_STATUS_ID", "done")
 
 	_, err := Load()
@@ -229,14 +229,14 @@ func clearConfigEnv(t *testing.T) {
 	t.Helper()
 
 	for _, key := range []string{
-		"GITWORK_ENV_FILE",
+		"TOTONOU_ENV_FILE",
 		"BACKLOG_SPACE_URL",
 		"BACKLOG_API_KEY",
 		"BACKLOG_DONE_STATUS_ID",
 		"GITHUB_REPO",
-		"GITWORK_DEFAULT_BASE",
-		"GITWORK_BRANCH_PATTERN",
-		"GITWORK_PROJECT_KEY",
+		"TOTONOU_DEFAULT_BASE",
+		"TOTONOU_BRANCH_PATTERN",
+		"TOTONOU_PROJECT_KEY",
 	} {
 		t.Setenv(key, "")
 	}

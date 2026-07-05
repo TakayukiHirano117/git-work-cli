@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"git-cli/internal/backlog"
-	"git-cli/internal/config"
-	gitcmd "git-cli/internal/git"
-	"git-cli/internal/store"
+	"totonou/internal/backlog"
+	"totonou/internal/config"
+	gitcmd "totonou/internal/git"
+	"totonou/internal/store"
 )
 
 func TestWorkCreatesBranchAndRecordsParent(t *testing.T) {
@@ -779,7 +779,7 @@ func TestHelpPrintsConfigSubcommandUsage(t *testing.T) {
 	output := out.String()
 	for _, want := range []string{
 		"config path",
-		"gitwork config path",
+		"totonou config path",
 		".env",
 		"tree.json",
 	} {
@@ -1167,7 +1167,7 @@ func TestPRShowsBranchNameHintWhenIssueKeyMissing(t *testing.T) {
 			BacklogDoneStatusID: 5,
 			GitHubRepo:          "owner/repo",
 		},
-		Store:  store.New(filepath.Join(t.TempDir(), "tree.json")),
+		Store: store.New(filepath.Join(t.TempDir(), "tree.json")),
 		Git: gitcmd.Client{Run: func(_ context.Context, _ string, name string, args ...string) (string, error) {
 			if name+" "+strings.Join(args, " ") == "git branch --show-current" {
 				return "feature/member/backend", nil

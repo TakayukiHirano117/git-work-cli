@@ -1,6 +1,6 @@
-# gitwork TODO Automation Prompt
+# totonou TODO Automation Prompt
 
-このリポジトリ `git-cli` で、定期的に `todo.md` をもとに小さな改善を1つ実装してください。
+このリポジトリ `totonou`（旧名: `gitwork` / `git-cli`）で、定期的に `todo.md` をもとに小さな改善を1つ実装してください。
 
 ## 実行手順
 

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"git-cli/internal/backlog"
-	"git-cli/internal/config"
-	gitcmd "git-cli/internal/git"
-	"git-cli/internal/store"
+	"totonou/internal/backlog"
+	"totonou/internal/config"
+	gitcmd "totonou/internal/git"
+	"totonou/internal/store"
 )
 
 type App struct {
@@ -37,7 +37,7 @@ func New(dir string, stdin io.Reader, stdout io.Writer, stderr io.Writer) App {
 
 func (a App) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		a.printHelp("")
+		a.printWelcome()
 		return nil
 	}
 
@@ -346,7 +346,7 @@ func (a App) runInit(args []string) error {
 
 func (a App) runConfig(args []string) error {
 	if len(args) != 1 || args[0] != "path" {
-		return errors.New("usage: gitwork config path")
+		return errors.New("usage: totonou config path")
 	}
 
 	envPath, err := config.DefaultEnvPath()
@@ -418,7 +418,7 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 		return parseIssueKey(args[0])
 	}
 	if len(args) > 1 {
-		return "", errors.New("usage: gitwork epic status [epic-key]")
+		return "", errors.New("usage: totonou epic status [epic-key]")
 	}
 
 	currentBranch, err := a.Git.CurrentBranch(ctx)
@@ -570,7 +570,6 @@ func (a App) confirm(question string) (bool, error) {
 	answer = strings.TrimSpace(strings.ToLower(answer))
 	return answer == "y" || answer == "yes", nil
 }
-
 
 func issueKeyFromBranch(branch string) (string, error) {
 	re := regexp.MustCompile(`[A-Za-z]+-\d+`)

@@ -2,6 +2,27 @@ package app
 
 import "fmt"
 
+const bannerArt = `█████   ███   █████   ███   █   █   ███   █   █
+  █    █   █    █    █   █  ██  █  █   █  █   █
+  █    █   █    █    █   █  █ █ █  █   █  █   █
+  █    █   █    █    █   █  █  ██  █   █  █   █
+  █     ███     █     ███   █   █   ███    ███`
+
+func (a App) printWelcome() {
+	fmt.Fprintln(a.Stdout, bannerArt)
+	fmt.Fprintln(a.Stdout)
+	fmt.Fprintln(a.Stdout, "整 ── タスクとブランチを整える Git CLI")
+	fmt.Fprintln(a.Stdout)
+	fmt.Fprintln(a.Stdout, `主なコマンド:
+  work <issue-key>       課題キーから作業ブランチを作成
+  pr                     現在のブランチから Pull Request を作成
+  today                  今日見るべき子タスクを一覧表示
+  epic status [key]      エピック配下の状況を一覧表示
+  config path            設定ファイルの場所を表示
+
+詳しくは: totonou help`)
+}
+
 func (a App) printHelp(command string) {
 	if command != "" {
 		a.printCommandHelp(command)
@@ -11,13 +32,13 @@ func (a App) printHelp(command string) {
 }
 
 func (a App) printGeneralHelp() {
-	fmt.Fprintln(a.Stdout, `gitwork - Backlog / GitHub CLI / Git ラッパー
+	fmt.Fprintln(a.Stdout, `totonou (整) - Backlog / GitHub CLI / Git ラッパー
 
 Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
 短いコマンドでまとめて行う個人用 CLI です。
 
 使い方:
-  gitwork <command> [arguments]
+  totonou <command> [arguments]
 
 コマンド一覧:
 
@@ -28,7 +49,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・feature/<team>/<layer>/<ISSUE-KEY> 形式で子ブランチを作成
       （例: feature/member/backend/COMMUNITY-100）
     ・親子関係を tree.json に保存（today / epic で後から参照）
-    例: gitwork work COMMUNITY-102
+    例: totonou work COMMUNITY-102
 
   pr
     現在のブランチから Pull Request を作成します。
@@ -37,7 +58,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・git push → gh pr create を実行
     ・PR 作成後、Backlog のステータスを完了に更新
     オプション: --dry-run（確認のみ） / --yes（確認スキップ）
-    例: gitwork pr
+    例: totonou pr
 
   today
     今日見るべき子タスクを一覧表示します。
@@ -45,7 +66,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・各課題の Backlog タイトル・ステータスも表示
     ・エピックブランチにいるとき、配下の作業状況を確認する用途
     オプション: --no-backlog（Backlog API を呼ばずローカル記録のみ表示）
-    例: gitwork today
+    例: totonou today
 
   epic status [epic-key]
     エピック配下のブランチ・課題を一覧表示します。
@@ -59,7 +80,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
   config path
     設定ファイル (.env) と tree.json の保存場所を表示します。
     初回セットアップ時やパス確認に使います。
-    例: gitwork config path
+    例: totonou config path
 
   init
     初回セットアップ用に .env の雛形を作成します。
@@ -73,24 +94,24 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
 
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
-    例: gitwork help pr
+    例: totonou help pr
 
 よくある流れ:
   1. エピック用ブランチに checkout
-  2. gitwork work COMMUNITY-102   # 子タスク用ブランチを作成
+  2. totonou work COMMUNITY-102   # 子タスク用ブランチを作成
   3. コーディング・コミット
-  4. gitwork pr                   # PR 作成 + Backlog 更新
-  5. gitwork today                # 残りの子タスクを確認
+  4. totonou pr                   # PR 作成 + Backlog 更新
+  5. totonou today                # 残りの子タスクを確認
 
 設定ファイル (macOS):
-  ~/Library/Application Support/gitwork/.env
+  ~/Library/Application Support/totonou/.env
 
 環境変数:
   BACKLOG_SPACE_URL, BACKLOG_API_KEY, BACKLOG_DONE_STATUS_ID, GITHUB_REPO
-  GITWORK_DEFAULT_BASE, GITWORK_PROJECT_KEY
+  TOTONOU_DEFAULT_BASE, TOTONOU_PROJECT_KEY
 
 詳細ヘルプ:
-  gitwork help <command>`)
+  totonou help <command>`)
 }
 
 func (a App) printCommandHelp(command string) {
@@ -99,7 +120,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: work
 
 使い方:
-  gitwork work <issue-key> [--team member|admin|agency] [--layer frontend|backend]
+  totonou work <issue-key> [--team member|admin|agency] [--layer frontend|backend]
 
 説明:
   現在 checkout しているブランチを親として、課題キーから子ブランチを作成します。
@@ -116,13 +137,13 @@ func (a App) printCommandHelp(command string) {
   ・Git リポジトリ内で実行すること
 
 例:
-  gitwork work COMMUNITY-102
+  totonou work COMMUNITY-102
   → feature/member/backend/COMMUNITY-102 を作成（選択内容による）`)
 	case "pr":
 		fmt.Fprintln(a.Stdout, `コマンド: pr
 
 使い方:
-  gitwork pr [--dry-run] [--yes]
+  totonou pr [--dry-run] [--yes]
 
 説明:
   現在のブランチから Pull Request を作成します。
@@ -146,9 +167,9 @@ func (a App) printCommandHelp(command string) {
   ・.env に Backlog API 設定と BACKLOG_DONE_STATUS_ID が設定されていること
 
 例:
-  gitwork pr
-  gitwork pr --dry-run
-  gitwork pr --yes`)
+  totonou pr
+  totonou pr --dry-run
+  totonou pr --yes`)
 	case "today":
 		fmt.Fprintln(a.Stdout, `コマンド: today
 
@@ -174,7 +195,7 @@ func (a App) printCommandHelp(command string) {
   - COMMUNITY-103  テストを書く        未着手
 
 前提:
-  ・gitwork work で子ブランチを作成済みであること
+  ・totonou work で子ブランチを作成済みであること
   ・Backlog 設定があると課題タイトル・ステータスも表示される
 
 オプション:
@@ -216,19 +237,19 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: config path
 
 使い方:
-  gitwork config path
+  totonou config path
 
 説明:
   設定ファイル (.env) と tree.json の保存場所を表示します。
   初回セットアップ時や、設定ファイルの場所を確認したいときに使います。
 
 表示例:
-  config: /Users/you/Library/Application Support/gitwork/.env
-  tree:   /Users/you/Library/Application Support/gitwork/tree.json
+  config: /Users/you/Library/Application Support/totonou/.env
+  tree:   /Users/you/Library/Application Support/totonou/tree.json
 
 補足:
   ・設定は .env のみです（config.json は使いません）
-  ・任意の .env を使う場合は GITWORK_ENV_FILE 環境変数を設定します
+  ・任意の .env を使う場合は TOTONOU_ENV_FILE 環境変数を設定します
 
 例:
   gitwork config path`)

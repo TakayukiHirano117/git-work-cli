@@ -1,10 +1,9 @@
-# gitwork TODO
+# totonou TODO
 
 ## 使いやすさを上げる
 
 ## かっこよくする
 
-- [ ] `gitwork` 単体実行時に小さめの ASCII アートロゴと主要コマンド一覧を表示する。
 - [ ] `--plain` オプションを用意し、CI やスクリプトでは装飾なしの出力に切り替えられるようにする。
 - [ ] 端末が TTY のときだけ成功/警告/失敗の記号と色を付ける。
 - [ ] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `gitwork pr --dry-run` などの候補を表示する。（診断: 実装は1行出力のみ。小さく安全に着手しやすい）
@@ -34,7 +33,7 @@
 - [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプの `today` には `--json` が未記載）
 - [ ] `help` の一般説明に `work` の `--team` / `--layer` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
-- [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
+- [ ] リリース方法を決める。まずは `go install github.com/.../cmd/totonou@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。
 
 ## 完了済み
@@ -63,10 +62,10 @@
 - [x] `gitwork pr` でユーザーが `n` を入力したときに作成処理を止めることをテストする。（`feature/automation/2026-07-04-pr-no-cancel`）
 - [x] `gitwork pr --yes` が確認プロンプトを省略することをテストする。（`feature/automation/2026-07-04-pr-yes-skip-confirm`）
 - [x] `help` に `config path` コマンドを追記する。（`feature/automation/2026-07-04-help-config-path`）
-- [x] `gitwork config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。（`feature/automation/2026-07-04-config-path`）
-- [x] 課題キーが見つからないブランチで `gitwork pr` を実行したとき、期待するブランチ名例をエラーメッセージに出す。（`feature/automation/2026-07-04-pr-issue-key-hint`）
+- [x] `totonou config path` を追加し、設定ファイルと `tree.json` の場所をすぐ確認できるようにする。（`feature/automation/2026-07-04-config-path`）
+- [x] 課題キーが見つからないブランチで `totonou pr` を実行したとき、期待するブランチ名例をエラーメッセージに出す。（`feature/automation/2026-07-04-pr-issue-key-hint`）
 - [x] `issueKeyFromBranch` の複数パターンをテーブルテスト化する。（`feature/automation/2026-07-04-pr-issue-key-hint`）
 - [x] `work` 実行時に同名ブランチがすでに記録されている場合、記録済みの親ブランチも表示する。（`feature/automation/2026-07-04-work-duplicate-parent-hint`）
-- [x] `gitwork today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。（`feature/automation/2026-07-04-today-no-backlog`）
-- [x] `gitwork pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。（`feature/automation/2026-07-04-pr-dry-run-output`）
-- [x] `gitwork pr --dry-run` が Git push、`gh pr create`、Backlog 更新を実行しないことをテストする。（`feature/automation/2026-07-04-pr-dry-run-output`）
+- [x] `totonou today` に `--no-backlog` を追加し、Backlog API を呼ばずにローカル記録だけ確認できるようにする。（`feature/automation/2026-07-04-today-no-backlog`）
+- [x] `totonou pr --dry-run` の出力を、タイトル、base、本文、実行予定コマンドが見やすい順に整える。（`feature/automation/2026-07-04-pr-dry-run-output`）
+- [x] `totonou pr --dry-run` が Git push、`gh pr create`、Backlog 更新を実行しないことをテストする。（`feature/automation/2026-07-04-pr-dry-run-output`）

@@ -1,14 +1,14 @@
 ---
 name: gitwork-project-diagnosis
-description: Diagnose this gitwork Go CLI for prioritized improvements and possible feature additions. Use when reviewing this project for product usefulness, implementation quality, tests, documentation, or future roadmap ideas.
+description: Diagnose this totonou (formerly gitwork) Go CLI for prioritized improvements and possible feature additions. Use when reviewing this project for product usefulness, implementation quality, tests, documentation, or future roadmap ideas.
 disable-model-invocation: true
 ---
 
-# gitwork Project Diagnosis
+# totonou Project Diagnosis
 
 ## Purpose
 
-Use this skill to inspect the `gitwork` project and produce a concise, prioritized diagnosis of improvements and feature candidates.
+Use this skill to inspect the `totonou` project and produce a concise, prioritized diagnosis of improvements and feature candidates.
 
 The diagnosis should balance:
 - User-facing usefulness
@@ -19,7 +19,7 @@ The diagnosis should balance:
 
 ## Project Context
 
-`gitwork` is a small Go CLI for a Backlog-based Git workflow. It connects local Git, GitHub CLI, Backlog API, and a local `tree.json` branch relationship store.
+`totonou` is a small Go CLI for a Backlog-based Git workflow. It connects local Git, GitHub CLI, Backlog API, and a local `tree.json` branch relationship store.
 
 Respect the repository boundaries:
 - CLI dispatch and workflows live in `internal/app`.
@@ -33,7 +33,7 @@ Do not recommend new dependencies unless they materially reduce complexity or ri
 ## Diagnosis Workflow
 
 1. Read `AGENTS.md`, `README.md`, and `todo.md` first.
-2. Inspect the current command surface in `cmd/gitwork/main.go` and `internal/app`.
+2. Inspect the current command surface in `cmd/totonou/main.go` and `internal/app`.
 3. Inspect package boundaries in `internal/config`, `internal/git`, `internal/backlog`, and `internal/store`.
 4. Check existing tests before claiming a test gap.
 5. Treat `todo.md` as prior art, not as final truth. Confirm whether each idea is still valuable from the current code.

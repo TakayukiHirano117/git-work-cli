@@ -26,19 +26,21 @@
 
 ## メンテナンスしやすくする
 
-- [ ] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（診断: 3コマンドは実装済みだが README 未記載。次回最優先）
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
-- [ ] `README.md` に `config path` の説明を追記する。（診断: help には追記済みだが README には未記載）
+- [ ] `README.md` に `config path` の説明を追記する。（診断: First-time Setup には追記済みだが Commands 節には未記載）
 - [ ] `README.md` の Config 節で `.env` 自動読み込みの説明が重複しているため整理する。（診断: 同一文が2行連続）
 - [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
 - [ ] `help` の doctor 説明に `github config` 検査を追記する。（診断: 実装済みだが help 未更新）
+- [ ] `pr --dry-run` が `GITHUB_REPO` 未設定でも PR プレビューできるようにするか検討する。（診断: `ValidateGitHub` が dry-run 前に走る。現状は早期検出を優先）
 - [ ] `help` の一般説明に `today` / `epic status` の `--json` / `--no-backlog` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載。`today` の `--json` も同様）
+- [ ] `help` の一般説明に `work` の `--team` / `--layer` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
 - [ ] `CHANGELOG.md` を追加し、日常利用に影響する変更を残す。
 - [ ] リリース方法を決める。まずは `go install github.com/.../cmd/gitwork@latest` で入れられる形を目標にする。
 - [ ] `AGENTS.md` に、新しいコマンドを追加するときのテスト観点を追記する。
 
 ## 完了済み
 
+- [x] `README.md` に `doctor`・`init`・`config path` を含む初回セットアップ手順を反映する。（`feature/automation/2026-07-05-readme-setup`）
 - [x] `pr` / `doctor` で `GITHUB_REPO` 未設定を早期に検出し、`gh pr create` 失敗前に案内する。（`feature/automation/2026-07-05-github-repo-validation`）
 - [x] 未知コマンドでも `config.Load()` が先に走る。`isKnownCommand` で `withDeps` より前に検証する。（`feature/automation/2026-07-04-unknown-command-before-config`）
 - [x] `today` / `epic status` のプレーンテキスト出力に子ブランチ名を含める。（`feature/automation/2026-07-04-today-epic-plain-branch-name`）

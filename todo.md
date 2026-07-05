@@ -19,8 +19,7 @@
 - [ ] `tree.json` の読み書きにバージョンフィールドを追加するか検討し、将来の形式変更に備える。
 - [ ] `projectKey` と `BranchPattern` が未使用に見えるため、使う方針か削除する方針かを決める。（`work` は `feature/<team>/<layer>/<issue>` 固定）
 - [ ] `.env` の形式不正があると `doctor` を含む主要コマンドが起動前に失敗する。切り分け用コマンドでも設定読み込みを緩和するか検討する。（診断: `config path` / `init` のみ `loadDeps: false`。次回最優先）
-- [ ] `init` が生成する `.env` 雛形の環境変数名が実装と不一致（`GITWORK_*` / `GITWORK_ENV_FILE` と `TOTONOU_*` の混在）。雛形と help を `TOTONOU_*` に揃える。（診断: `config.EnvTemplate()` L174-175 と `applyEnv` が読む変数名がずれている。次回最優先候補）
-- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: `CreateBranch` 後に `Store.Add` が失敗するとブランチだけ残る。エラーに作成済みブランチ名を含めるのが第一歩）
+- [ ] `work` でブランチ作成後に `tree.json` 記録が失敗した場合の復旧方針を決める。（診断: `CreateBranch` 後に `Store.Add` が失敗するとブランチだけ残る。エラーに作成済みブランチ名を含めるのが第一歩。次回最優先候補）
 - [ ] `internal/git` に fake runner を使った単体テストを追加する。（診断: `internal/git` にテストファイルがない）
 
 ## メンテナンスしやすくする
@@ -37,6 +36,7 @@
 
 ## 完了済み
 
+- [x] `init` が生成する `.env` 雛形の環境変数名が実装と不一致（`GITWORK_*` / `GITWORK_ENV_FILE` と `TOTONOU_*` の混在）。雛形と help を `TOTONOU_*` に揃える。（`feature/automation/2026-07-05-init-env-template-totonou`）
 - [x] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `totonou pr --dry-run` などの候補を表示する。（`feature/automation/2026-07-05-work-next-steps`）
 - [x] `README.md` に `config path` の説明を追記する。（診断: Commands 節 L151-157 に既に記載済みのため整理）
 - [x] `help` の doctor 説明に `github config` 検査を追記する。（`feature/automation/2026-07-05-help-doctor-github-config`）

@@ -270,7 +270,7 @@ func (a App) printCommandHelp(command string) {
 
 補足:
   ・既に .env がある場合は上書きしません
-  ・任意の .env を使う場合は GITWORK_ENV_FILE 環境変数を設定します
+  ・任意の .env を使う場合は TOTONOU_ENV_FILE 環境変数を設定します
   ・設定後は gitwork doctor で前提条件を確認できます
 
 例:

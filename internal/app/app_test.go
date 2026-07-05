@@ -782,7 +782,7 @@ func TestTodayFailsWithCorruptTreeJSON(t *testing.T) {
 		treePath,
 		"invalid tree.json",
 		"fix the JSON or remove the file",
-		"gitwork config path",
+		"totonou config path",
 	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("expected error to contain %q, got %q", want, err.Error())
@@ -807,12 +807,38 @@ func TestHelpPrintsGeneralUsage(t *testing.T) {
 		"今日見るべき子タスク",
 		"epic status",
 		"config path",
-		"gitwork init",
+		"totonou init",
 		"よくある流れ",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected help to contain %q, got %q", want, output)
 		}
+	}
+}
+
+func TestHelpDoesNotUseGitworkNaming(t *testing.T) {
+	t.Parallel()
+
+	commands := [][]string{
+		{"help"},
+		{"help", "today"},
+		{"help", "doctor"},
+		{"help", "init"},
+		{"help", "epic"},
+	}
+	for _, args := range commands {
+		args := args
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			t.Parallel()
+			out := &bytes.Buffer{}
+			app := App{Stdout: out, loadDeps: false}
+			if err := app.Run(context.Background(), args); err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(out.String(), "gitwork") {
+				t.Fatalf("help output should not contain legacy gitwork naming:\n%s", out.String())
+			}
+		})
 	}
 }
 
@@ -959,7 +985,7 @@ func TestInitCreatesEnvTemplateWhenConfirmed(t *testing.T) {
 		envPath,
 		"Create .env template?",
 		"created " + envPath,
-		"gitwork doctor",
+		"totonou doctor",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("expected output to contain %q, got %q", want, output)

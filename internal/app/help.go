@@ -74,8 +74,8 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・課題キーのプレフィックス（例: COMMUNITY-100 → COMMUNITY）で絞り込み
     ・エピック全体の進捗を俯瞰する用途
     オプション: --no-backlog（Backlog API を呼ばずローカル記録のみ表示） / --json
-    例: gitwork epic status COMMUNITY-100
-    例: gitwork epic status
+    例: totonou epic status COMMUNITY-100
+    例: totonou epic status
 
   config path
     設定ファイル (.env) と tree.json の保存場所を表示します。
@@ -85,12 +85,12 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
   init
     初回セットアップ用に .env の雛形を作成します。
     保存先を表示し、対話形式で雛形作成を確認します。
-    例: gitwork init
+    例: totonou init
 
   doctor
     Git リポジトリ、gh 認証、Backlog 設定、GitHub 設定 (GITHUB_REPO) をまとめて検査します。
     初回セットアップ後やトラブル時の確認に使います。
-    例: gitwork doctor
+    例: totonou doctor
 
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
@@ -174,7 +174,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: today
 
 使い方:
-  gitwork today [--no-backlog] [--json]
+  totonou today [--no-backlog] [--json]
 
 説明:
   現在のブランチから作成した子ブランチ（子タスク）を一覧表示します。
@@ -203,17 +203,17 @@ func (a App) printCommandHelp(command string) {
   --json         JSON 形式で出力（スクリプト連携向け）
 
 例:
-  gitwork today
-  gitwork today --no-backlog
-  gitwork today --json`)
+  totonou today
+  totonou today --no-backlog
+  totonou today --json`)
 	case "doctor":
 		fmt.Fprintln(a.Stdout, `コマンド: doctor
 
 使い方:
-  gitwork doctor
+  totonou doctor
 
 説明:
-  gitwork を使うための前提条件をまとめて検査します。
+  totonou を使うための前提条件をまとめて検査します。
   初回セットアップ後や、コマンドが失敗したときの切り分けに使います。
 
 検査内容:
@@ -229,10 +229,10 @@ func (a App) printCommandHelp(command string) {
   github config: ok
 
 いずれかが失敗した場合は終了コード 1 で終了します。
-設定ファイルの場所は gitwork config path で確認できます。
+設定ファイルの場所は totonou config path で確認できます。
 
 例:
-  gitwork doctor`)
+  totonou doctor`)
 	case "config":
 		fmt.Fprintln(a.Stdout, `コマンド: config path
 
@@ -252,12 +252,12 @@ func (a App) printCommandHelp(command string) {
   ・任意の .env を使う場合は TOTONOU_ENV_FILE 環境変数を設定します
 
 例:
-  gitwork config path`)
+  totonou config path`)
 	case "init":
 		fmt.Fprintln(a.Stdout, `コマンド: init
 
 使い方:
-  gitwork init
+  totonou init
 
 説明:
   初回セットアップ用に .env の雛形を作成します。
@@ -271,15 +271,15 @@ func (a App) printCommandHelp(command string) {
 補足:
   ・既に .env がある場合は上書きしません
   ・任意の .env を使う場合は TOTONOU_ENV_FILE 環境変数を設定します
-  ・設定後は gitwork doctor で前提条件を確認できます
+  ・設定後は totonou doctor で前提条件を確認できます
 
 例:
-  gitwork init`)
+  totonou init`)
 	case "epic":
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 
 使い方:
-  gitwork epic status [--no-backlog] [--json] [epic-key]
+  totonou epic status [--no-backlog] [--json] [epic-key]
 
 説明:
   指定したエピック配下のブランチ・課題を一覧表示します。
@@ -305,10 +305,10 @@ func (a App) printCommandHelp(command string) {
   --json         JSON 形式で出力（スクリプト連携向け）
 
 例:
-  gitwork epic status COMMUNITY-100
-  gitwork epic status
-  gitwork epic status --no-backlog COMMUNITY-100
-  gitwork epic status --json COMMUNITY-100`)
+  totonou epic status COMMUNITY-100
+  totonou epic status
+  totonou epic status --no-backlog COMMUNITY-100
+  totonou epic status --json COMMUNITY-100`)
 	case "help":
 		a.printGeneralHelp()
 	default:

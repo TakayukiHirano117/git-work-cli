@@ -12,7 +12,7 @@ func TestWriteEnvTemplateCreatesFile(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	envPath := filepath.Join(dir, "gitwork", ".env")
+	envPath := filepath.Join(dir, "totonou", ".env")
 
 	if err := WriteEnvTemplate(envPath); err != nil {
 		t.Fatal(err)

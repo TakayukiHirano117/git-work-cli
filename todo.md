@@ -24,8 +24,7 @@
 ## メンテナンスしやすくする
 
 - [ ] `README.md` に `today --no-backlog` / `epic status --no-backlog` と `--json` の説明を追記する。
-- [ ] `README.md` / `help` / エラーメッセージの `gitwork` 表記を `totonou` に統一し、設定ディレクトリパス例も `totonou` に揃える。（診断: `app.go` / `help.go` / `store.go` / `README.md` に残存。次回最優先候補）
-- [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: 実装は `os.UserConfigDir()` ベースだが説明は macOS のみ）
+- [ ] `README.md` / `help` に Linux 向けの設定ファイルパス例を追記する。（診断: README Config 節に Linux パスを追記済み。一般 help は macOS のみ。次回最優先候補）
 - [ ] `pr --dry-run` が `GITHUB_REPO` 未設定でも PR プレビューできるようにするか検討する。（診断: `ValidateGitHub` が dry-run 前に走る。現状は早期検出を優先）
 - [ ] `help` の一般説明に `today` の `--json` オプションを追記する。（診断: 一般ヘルプの `today` には `--no-backlog` のみ。`epic status` は `--json` 記載済み）
 - [ ] `help` の一般説明に `work` の `--team` / `--layer` オプションを追記する。（診断: コマンド別ヘルプにはあるが一般ヘルプに未記載）
@@ -35,6 +34,7 @@
 
 ## 完了済み
 
+- [x] `README.md` / `help` / エラーメッセージの `gitwork` 表記を `totonou` に統一し、設定ディレクトリパス例も `totonou` に揃える。（`feature/automation/2026-07-05-gitwork-to-totonou-naming`）
 - [x] `work` でブランチ作成後に `tree.json` 記録が失敗した場合、エラーに作成済みブランチ名と復旧ヒントを含める。（`feature/automation/2026-07-05-work-store-add-failure-hint`）
 - [x] `init` が生成する `.env` 雛形の環境変数名が実装と不一致（`GITWORK_*` / `GITWORK_ENV_FILE` と `TOTONOU_*` の混在）。雛形と help を `TOTONOU_*` に揃える。（`feature/automation/2026-07-05-init-env-template-totonou`）
 - [x] `work` 成功時に `created <child> from <parent>` だけでなく、次に使う `totonou pr --dry-run` などの候補を表示する。（`feature/automation/2026-07-05-work-next-steps`）

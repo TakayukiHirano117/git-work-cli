@@ -80,7 +80,7 @@ func TestLoadInvalidTreeJSONReturnsRecoveryHint(t *testing.T) {
 		path,
 		"invalid tree.json",
 		"fix the JSON or remove the file",
-		"gitwork config path",
+		"totonou config path",
 	} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("expected error to contain %q, got %q", want, err.Error())

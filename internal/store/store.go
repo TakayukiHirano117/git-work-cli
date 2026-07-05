@@ -114,7 +114,7 @@ func DuplicateBranchError(childBranch, parentBranch string) error {
 
 func corruptTreeError(path string, err error) error {
 	return fmt.Errorf(
-		"invalid tree.json at %s: %w; fix the JSON or remove the file to rebuild local branch records (run gitwork config path to find the path)",
+		"invalid tree.json at %s: %w; fix the JSON or remove the file to rebuild local branch records (run totonou config path to find the path)",
 		path,
 		err,
 	)

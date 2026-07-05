@@ -37,6 +37,11 @@ func (c Client) PushCurrentBranch(ctx context.Context, branch string) error {
 	return err
 }
 
+func (c Client) GHAuthStatus(ctx context.Context) error {
+	_, err := c.output(ctx, "gh", "auth", "status")
+	return err
+}
+
 func (c Client) CreatePullRequest(ctx context.Context, repo string, title string, body string, base string, dryRun bool) (string, error) {
 	args := []string{"pr", "create", "--title", title, "--body", body, "--base", base}
 	if repo != "" {

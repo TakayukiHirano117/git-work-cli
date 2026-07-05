@@ -1,6 +1,7 @@
 package store
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -60,6 +61,52 @@ func TestAddAllowsSameChildBranchInDifferentRepos(t *testing.T) {
 	}
 	if len(tree.Records) != 2 {
 		t.Fatalf("expected 2 records, got %d", len(tree.Records))
+	}
+}
+
+func TestLoadInvalidTreeJSONReturnsRecoveryHint(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "tree.json")
+	if err := os.WriteFile(path, []byte("{not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := New(path).Load()
+	if err == nil {
+		t.Fatal("expected error for invalid tree.json")
+	}
+	for _, want := range []string{
+		path,
+		"invalid tree.json",
+		"fix the JSON or remove the file",
+		"totonou config path",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("expected error to contain %q, got %q", want, err.Error())
+		}
+	}
+}
+
+func TestAddRejectsInvalidTreeJSON(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "tree.json")
+	if err := os.WriteFile(path, []byte("[]"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	err := New(path).Add(Record{
+		RepoRoot:     "/repo",
+		ParentBranch: "develop",
+		ChildBranch:  "feature/community-101",
+		IssueKey:     "COMMUNITY-101",
+	})
+	if err == nil {
+		t.Fatal("expected error when adding to invalid tree.json")
+	}
+	if !strings.Contains(err.Error(), "invalid tree.json") {
+		t.Fatalf("expected invalid tree.json error, got %q", err.Error())
 	}
 }
 

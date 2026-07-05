@@ -73,6 +73,7 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     ・epic-key 省略時は現在ブランチの課題キーを epic として使う
     ・課題キーのプレフィックス（例: COMMUNITY-100 → COMMUNITY）で絞り込み
     ・エピック全体の進捗を俯瞰する用途
+    オプション: --no-backlog（Backlog API を呼ばずローカル記録のみ表示） / --json
     例: totonou epic status COMMUNITY-100
     例: totonou epic status
 
@@ -80,6 +81,16 @@ Backlog の課題、GitHub の PR、ローカル Git のブランチ操作を
     設定ファイル (.env) と tree.json の保存場所を表示します。
     初回セットアップ時やパス確認に使います。
     例: totonou config path
+
+  init
+    初回セットアップ用に .env の雛形を作成します。
+    保存先を表示し、対話形式で雛形作成を確認します。
+    例: totonou init
+
+  doctor
+    Git リポジトリ、gh 認証、Backlog 設定、GitHub 設定 (GITHUB_REPO) をまとめて検査します。
+    初回セットアップ後やトラブル時の確認に使います。
+    例: totonou doctor
 
   help [command]
     ヘルプを表示します。コマンド名を指定すると詳細を表示します。
@@ -163,7 +174,7 @@ func (a App) printCommandHelp(command string) {
 		fmt.Fprintln(a.Stdout, `コマンド: today
 
 使い方:
-  totonou today [--no-backlog]
+  totonou today [--no-backlog] [--json]
 
 説明:
   現在のブランチから作成した子ブランチ（子タスク）を一覧表示します。
@@ -189,10 +200,39 @@ func (a App) printCommandHelp(command string) {
 
 オプション:
   --no-backlog   Backlog API を呼ばず、tree.json のローカル記録だけを表示
+  --json         JSON 形式で出力（スクリプト連携向け）
 
 例:
   totonou today
-  totonou today --no-backlog`)
+  totonou today --no-backlog
+  totonou today --json`)
+	case "doctor":
+		fmt.Fprintln(a.Stdout, `コマンド: doctor
+
+使い方:
+  totonou doctor
+
+説明:
+  totonou を使うための前提条件をまとめて検査します。
+  初回セットアップ後や、コマンドが失敗したときの切り分けに使います。
+
+検査内容:
+  1. 現在のディレクトリが Git リポジトリ内か
+  2. GitHub CLI (gh) がログイン済みか
+  3. Backlog 設定 (.env) が pr 実行に必要な項目まで揃っているか
+  4. GitHub 設定 (.env の GITHUB_REPO) が pr 実行に必要な項目まで揃っているか
+
+表示例:
+  git repository: ok (/path/to/repo)
+  gh auth: ok
+  backlog config: ok
+  github config: ok
+
+いずれかが失敗した場合は終了コード 1 で終了します。
+設定ファイルの場所は totonou config path で確認できます。
+
+例:
+  totonou doctor`)
 	case "config":
 		fmt.Fprintln(a.Stdout, `コマンド: config path
 
@@ -213,11 +253,33 @@ func (a App) printCommandHelp(command string) {
 
 例:
   totonou config path`)
+	case "init":
+		fmt.Fprintln(a.Stdout, `コマンド: init
+
+使い方:
+  totonou init
+
+説明:
+  初回セットアップ用に .env の雛形を作成します。
+  設定ファイルと tree.json の保存先を表示し、対話形式で雛形作成を確認します。
+
+動作:
+  1. config (.env) と tree.json の保存先を表示
+  2. .env が未作成なら雛形作成を確認
+  3. 承認時に設定ディレクトリと .env を作成
+
+補足:
+  ・既に .env がある場合は上書きしません
+  ・任意の .env を使う場合は TOTONOU_ENV_FILE 環境変数を設定します
+  ・設定後は totonou doctor で前提条件を確認できます
+
+例:
+  totonou init`)
 	case "epic":
 		fmt.Fprintln(a.Stdout, `コマンド: epic status
 
 使い方:
-  totonou epic status [epic-key]
+  totonou epic status [--no-backlog] [--json] [epic-key]
 
 説明:
   指定したエピック配下のブランチ・課題を一覧表示します。
@@ -229,6 +291,7 @@ func (a App) printCommandHelp(command string) {
   2. エピックキーのプレフィックス（COMMUNITY-100 → COMMUNITY）で絞り込み
   3. 同じリポジトリ内の該当課題キーを tree.json から検索
   4. 各課題の Backlog タイトル・ステータスを表示
+     （--no-backlog 指定時は Backlog API を呼ばず、課題キーのみ表示）
 
 表示例:
   Epic COMMUNITY-100
@@ -237,9 +300,15 @@ func (a App) printCommandHelp(command string) {
   - COMMUNITY-102  API利用画面を実装  対応中
   - COMMUNITY-103  テストを書く        未着手
 
+オプション:
+  --no-backlog   Backlog API を呼ばず、tree.json のローカル記録だけを表示
+  --json         JSON 形式で出力（スクリプト連携向け）
+
 例:
   totonou epic status COMMUNITY-100
-  totonou epic status`)
+  totonou epic status
+  totonou epic status --no-backlog COMMUNITY-100
+  totonou epic status --json COMMUNITY-100`)
 	case "help":
 		a.printGeneralHelp()
 	default:
@@ -251,6 +320,15 @@ func (a App) printCommandHelp(command string) {
 func isHelpRequest(args []string) bool {
 	switch args[0] {
 	case "help", "-h", "--help":
+		return true
+	default:
+		return false
+	}
+}
+
+func isKnownCommand(name string) bool {
+	switch name {
+	case "work", "pr", "today", "epic", "doctor":
 		return true
 	default:
 		return false

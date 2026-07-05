@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 )
 
@@ -13,6 +14,55 @@ var workLayerOptions = []string{"frontend", "backend"}
 
 func workBranchName(team string, layer string, issueKey string) string {
 	return fmt.Sprintf("feature/%s/%s/%s", team, layer, strings.ToUpper(issueKey))
+}
+
+func printWorkSuccess(stdout io.Writer, childBranch, parentBranch string) {
+	fmt.Fprintf(stdout, "created %s from %s\n", childBranch, parentBranch)
+	fmt.Fprintln(stdout, "next:")
+	fmt.Fprintln(stdout, "  totonou pr --dry-run")
+}
+
+func workStoreAddError(childBranch string, err error) error {
+	return fmt.Errorf(
+		"branch %s was created but tree.json was not updated: %w; switch to the branch to continue work or delete it before retrying",
+		childBranch,
+		err,
+	)
+}
+
+var stdinIsTTY = defaultStdinIsTTY
+
+func defaultStdinIsTTY(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
+func requireWorkFlagsForNonInteractive(teamFlag, layerFlag string, stdin io.Reader) error {
+	if teamFlag != "" && layerFlag != "" {
+		return nil
+	}
+	if stdinIsTTY(stdin) {
+		return nil
+	}
+
+	missing := make([]string, 0, 2)
+	if teamFlag == "" {
+		missing = append(missing, "--team")
+	}
+	if layerFlag == "" {
+		missing = append(missing, "--layer")
+	}
+	return fmt.Errorf(
+		"non-interactive stdin: specify %s (e.g. --team member --layer backend)",
+		strings.Join(missing, " and "),
+	)
 }
 
 func resolveWorkTeamChoice(teamFlag string, reader *bufio.Reader, stdout io.Writer) (string, error) {

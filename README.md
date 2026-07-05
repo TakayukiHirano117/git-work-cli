@@ -43,9 +43,39 @@ go install ./cmd/totonou
 go run ./cmd/totonou --help
 ```
 
+## First-time Setup
+
+初回は次の順で設定します。
+
+1. 保存先を確認する:
+
+```sh
+totonou config path
+```
+
+`config` に `.env`、`tree` に `tree.json` のパスが表示されます。OS ごとの実際のパスは `os.UserConfigDir()` 配下です（macOS では `~/Library/Application Support/totonou/`、Linux では通常 `~/.config/totonou/`）。
+
+2. `.env` の雛形を作成する:
+
+```sh
+totonou init
+```
+
+保存先を表示し、対話形式で雛形作成を確認します。既に `.env` がある場合は上書きしません。
+
+3. 表示された `.env` を編集し、Backlog と GitHub の値を入れます（下記 Config を参照）。
+
+4. 設定と環境を検査する:
+
+```sh
+totonou doctor
+```
+
+Git リポジトリ内か、`gh` 認証、Backlog 設定、`GITHUB_REPO` が揃っているかを確認します。問題があればメッセージに従って修正してください。
+
 ## Config
 
-設定は `.env` のみです。macOS では通常 `~/Library/Application Support/totonou/.env` です。
+設定は `.env` のみです。パスは `totonou config path` で確認できます。macOS では通常 `~/Library/Application Support/totonou/.env`、Linux では通常 `~/.config/totonou/.env` です。
 
 ```env
 BACKLOG_SPACE_URL=https://example.backlog.com

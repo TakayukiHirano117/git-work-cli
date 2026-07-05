@@ -3,10 +3,12 @@ package app
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -52,6 +54,18 @@ func (a App) Run(ctx context.Context, args []string) error {
 		return a.runConfig(args[1:])
 	}
 
+	if args[0] == "init" {
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("init")
+			return nil
+		}
+		return a.runInit(args[1:])
+	}
+
+	if !isKnownCommand(args[0]) {
+		return fmt.Errorf("unknown command: %s", args[0])
+	}
+
 	if a.loadDeps {
 		loaded, err := a.withDeps()
 		if err != nil {
@@ -85,6 +99,12 @@ func (a App) Run(ctx context.Context, args []string) error {
 			return nil
 		}
 		return a.runEpic(ctx, args[1:])
+	case "doctor":
+		if isSubcommandHelp(args[1:]) {
+			a.printHelp("doctor")
+			return nil
+		}
+		return a.runDoctor(ctx, args[1:])
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
@@ -113,13 +133,20 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		return err
 	}
 
-	issueKey := strings.ToUpper(issueKeyArg)
+	issueKey, err := parseIssueKey(issueKeyArg)
+	if err != nil {
+		return err
+	}
 	parentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
 	}
 	repoRoot, err := a.Git.RepoRoot(ctx)
 	if err != nil {
+		return err
+	}
+
+	if err := requireWorkFlagsForNonInteractive(teamFlag, layerFlag, a.Stdin); err != nil {
 		return err
 	}
 
@@ -154,10 +181,10 @@ func (a App) runWork(ctx context.Context, args []string) error {
 		CreatedAt:    time.Now(),
 	}
 	if err := a.Store.Add(record); err != nil {
-		return err
+		return workStoreAddError(childBranch, err)
 	}
 
-	fmt.Fprintf(a.Stdout, "created %s from %s\n", childBranch, parentBranch)
+	printWorkSuccess(a.Stdout, childBranch, parentBranch)
 	return nil
 }
 
@@ -171,6 +198,9 @@ func (a App) runPR(ctx context.Context, args []string) error {
 	}
 
 	if err := a.Config.ValidateDoneStatus(); err != nil {
+		return err
+	}
+	if err := a.Config.ValidateGitHub(); err != nil {
 		return err
 	}
 
@@ -222,9 +252,95 @@ func (a App) runPR(ctx context.Context, args []string) error {
 	fmt.Fprintln(a.Stdout, output)
 
 	if err := a.Backlog.UpdateIssueStatus(ctx, issueKey, a.Config.BacklogDoneStatusID); err != nil {
-		return err
+		return fmt.Errorf("git push and pull request were already created; Backlog status update failed: %w", err)
 	}
 	fmt.Fprintf(a.Stdout, "updated Backlog status: %s\n", issueKey)
+	return nil
+}
+
+func (a App) runDoctor(ctx context.Context, args []string) error {
+	if len(args) != 0 {
+		return errors.New("usage: totonou doctor")
+	}
+
+	failed := 0
+
+	repoRoot, err := a.Git.RepoRoot(ctx)
+	if err != nil {
+		fmt.Fprintf(a.Stdout, "git repository: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintf(a.Stdout, "git repository: ok (%s)\n", repoRoot)
+	}
+
+	if err := a.Git.GHAuthStatus(ctx); err != nil {
+		fmt.Fprintf(a.Stdout, "gh auth: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "gh auth: ok")
+	}
+
+	if err := a.Config.ValidateDoneStatus(); err != nil {
+		fmt.Fprintf(a.Stdout, "backlog config: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "backlog config: ok")
+	}
+
+	if err := a.Config.ValidateGitHub(); err != nil {
+		fmt.Fprintf(a.Stdout, "github config: not ok (%v)\n", err)
+		failed++
+	} else {
+		fmt.Fprintln(a.Stdout, "github config: ok")
+	}
+
+	if failed > 0 {
+		return fmt.Errorf("%d check(s) failed", failed)
+	}
+	return nil
+}
+
+func (a App) runInit(args []string) error {
+	if len(args) != 0 {
+		return errors.New("usage: totonou init")
+	}
+
+	envPath, err := config.DefaultEnvPath()
+	if err != nil {
+		return err
+	}
+	treePath, err := config.DefaultTreePath()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(a.Stdout, "totonou の設定ファイルは次の場所に保存されます:")
+	fmt.Fprintf(a.Stdout, "  config: %s\n", envPath)
+	fmt.Fprintf(a.Stdout, "  tree:   %s\n\n", treePath)
+
+	if _, err := os.Stat(envPath); err == nil {
+		fmt.Fprintf(a.Stdout, ".env は既に存在します: %s\n", envPath)
+		fmt.Fprintln(a.Stdout, "編集後は totonou doctor で設定を確認できます。")
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	ok, err := a.confirm("Create .env template?")
+	if err != nil {
+		return err
+	}
+	if !ok {
+		fmt.Fprintln(a.Stdout, "cancelled")
+		return nil
+	}
+
+	if err := config.WriteEnvTemplate(envPath); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(a.Stdout, "created %s\n", envPath)
+	fmt.Fprintln(a.Stdout, "値を編集したあと、totonou doctor で設定を確認できます。")
 	return nil
 }
 
@@ -251,21 +367,30 @@ func (a App) runToday(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("today", flag.ContinueOnError)
 	fs.SetOutput(a.Stderr)
 	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
+	jsonOutput := fs.Bool("json", false, "output as JSON")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: totonou today [--no-backlog]")
+		return errors.New("usage: totonou today [--no-backlog] [--json]")
 	}
-	return a.printRecordsForCurrentBranch(ctx, *noBacklog)
+	return a.printRecordsForCurrentBranch(ctx, *noBacklog, *jsonOutput)
 }
 
 func (a App) runEpic(ctx context.Context, args []string) error {
 	if len(args) == 0 || args[0] != "status" {
-		return errors.New("usage: totonou epic status [epic-key]")
+		return errors.New("usage: totonou epic status [--no-backlog] [--json] [epic-key]")
 	}
 
-	epicKey, err := a.resolveEpicKey(ctx, args[1:])
+	fs := flag.NewFlagSet("epic status", flag.ContinueOnError)
+	fs.SetOutput(a.Stderr)
+	noBacklog := fs.Bool("no-backlog", false, "show local records only without calling Backlog API")
+	jsonOutput := fs.Bool("json", false, "output as JSON")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+
+	epicKey, err := a.resolveEpicKey(ctx, fs.Args())
 	if err != nil {
 		return err
 	}
@@ -279,13 +404,18 @@ func (a App) runEpic(ctx context.Context, args []string) error {
 		return err
 	}
 
+	records := tree.ForEpic(repoRoot, epicKey)
+	if *jsonOutput {
+		return a.printEpicJSON(ctx, epicKey, records, *noBacklog)
+	}
+
 	fmt.Fprintf(a.Stdout, "Epic %s\n\n", strings.ToUpper(epicKey))
-	return a.printRecords(ctx, tree.ForEpic(repoRoot, epicKey), false)
+	return a.printRecords(ctx, records, *noBacklog)
 }
 
 func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) {
 	if len(args) == 1 {
-		return strings.ToUpper(args[0]), nil
+		return parseIssueKey(args[0])
 	}
 	if len(args) > 1 {
 		return "", errors.New("usage: totonou epic status [epic-key]")
@@ -296,14 +426,29 @@ func (a App) resolveEpicKey(ctx context.Context, args []string) (string, error) 
 		return "", err
 	}
 
-	epicKey, err := issueKeyFromBranch(currentBranch)
-	if err != nil {
-		return "", errors.New("usage: totonou epic status [epic-key]")
-	}
-	return epicKey, nil
+	return issueKeyFromBranch(currentBranch)
 }
 
-func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool) error {
+type recordOutput struct {
+	IssueKey     string    `json:"issueKey"`
+	Title        string    `json:"title"`
+	Status       string    `json:"status"`
+	ChildBranch  string    `json:"childBranch"`
+	ParentBranch string    `json:"parentBranch"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type todayJSONOutput struct {
+	CurrentBranch string         `json:"currentBranch"`
+	Children      []recordOutput `json:"children"`
+}
+
+type epicJSONOutput struct {
+	EpicKey string         `json:"epicKey"`
+	Records []recordOutput `json:"records"`
+}
+
+func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog, jsonOutput bool) error {
 	currentBranch, err := a.Git.CurrentBranch(ctx)
 	if err != nil {
 		return err
@@ -317,8 +462,81 @@ func (a App) printRecordsForCurrentBranch(ctx context.Context, skipBacklog bool)
 		return err
 	}
 
+	records := tree.Children(repoRoot, currentBranch)
+	if jsonOutput {
+		return a.printTodayJSON(ctx, currentBranch, records, skipBacklog)
+	}
+
 	fmt.Fprintf(a.Stdout, "Current branch\n%s\n\nChildren\n", currentBranch)
-	return a.printRecords(ctx, tree.Children(repoRoot, currentBranch), skipBacklog)
+	return a.printRecords(ctx, records, skipBacklog)
+}
+
+func (a App) fetchIssueInfo(ctx context.Context, issueKey string, skipBacklog bool) (title, status string, err error) {
+	if skipBacklog || a.Config.ValidateBacklog() != nil {
+		return "", "", nil
+	}
+	issue, err := a.Backlog.GetIssue(ctx, issueKey)
+	if err != nil {
+		return "", "", err
+	}
+	return issue.Summary, issue.Status, nil
+}
+
+func (a App) warnBacklogFetchFailure(issueKey string, err error) {
+	fmt.Fprintf(a.Stderr, "warning: failed to fetch %s from Backlog: %v\n", issueKey, err)
+}
+
+func (a App) enrichRecords(ctx context.Context, records []store.Record, skipBacklog bool) ([]recordOutput, error) {
+	outputs := make([]recordOutput, 0, len(records))
+	for _, record := range records {
+		title, status, err := a.fetchIssueInfo(ctx, record.IssueKey, skipBacklog)
+		if err != nil {
+			a.warnBacklogFetchFailure(record.IssueKey, err)
+		}
+		outputs = append(outputs, recordOutput{
+			IssueKey:     record.IssueKey,
+			Title:        title,
+			Status:       status,
+			ChildBranch:  record.ChildBranch,
+			ParentBranch: record.ParentBranch,
+			CreatedAt:    record.CreatedAt,
+		})
+	}
+	return outputs, nil
+}
+
+func (a App) printTodayJSON(ctx context.Context, currentBranch string, records []store.Record, skipBacklog bool) error {
+	children, err := a.enrichRecords(ctx, records, skipBacklog)
+	if err != nil {
+		return err
+	}
+	if children == nil {
+		children = []recordOutput{}
+	}
+	return encodeJSON(a.Stdout, todayJSONOutput{
+		CurrentBranch: currentBranch,
+		Children:      children,
+	})
+}
+
+func (a App) printEpicJSON(ctx context.Context, epicKey string, records []store.Record, skipBacklog bool) error {
+	outputs, err := a.enrichRecords(ctx, records, skipBacklog)
+	if err != nil {
+		return err
+	}
+	if outputs == nil {
+		outputs = []recordOutput{}
+	}
+	return encodeJSON(a.Stdout, epicJSONOutput{
+		EpicKey: strings.ToUpper(epicKey),
+		Records: outputs,
+	})
+}
+
+func encodeJSON(w io.Writer, value any) error {
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(value)
 }
 
 func (a App) printRecords(ctx context.Context, records []store.Record, skipBacklog bool) error {
@@ -328,17 +546,16 @@ func (a App) printRecords(ctx context.Context, records []store.Record, skipBackl
 	}
 
 	for _, record := range records {
-		title := "-"
-		status := "-"
-		if !skipBacklog && a.Config.ValidateBacklog() == nil {
-			issue, err := a.Backlog.GetIssue(ctx, record.IssueKey)
-			if err != nil {
-				return err
-			}
-			title = issue.Summary
-			status = issue.Status
+		title, status, err := a.fetchIssueInfo(ctx, record.IssueKey, skipBacklog)
+		if err != nil {
+			a.warnBacklogFetchFailure(record.IssueKey, err)
+			title = "-"
+			status = "-"
+		} else if skipBacklog || a.Config.ValidateBacklog() != nil {
+			title = "-"
+			status = "-"
 		}
-		fmt.Fprintf(a.Stdout, "- %s  %s  %s\n", record.IssueKey, title, status)
+		fmt.Fprintf(a.Stdout, "- %s  %s  %s  %s\n", record.IssueKey, record.ChildBranch, title, status)
 	}
 	return nil
 }

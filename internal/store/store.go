@@ -51,7 +51,7 @@ func (s *Store) Load() (Tree, error) {
 
 	var tree Tree
 	if err := json.Unmarshal(data, &tree); err != nil {
-		return Tree{}, fmt.Errorf("read tree %s: %w", s.path, err)
+		return Tree{}, corruptTreeError(s.path, err)
 	}
 	return tree, nil
 }
@@ -110,6 +110,14 @@ func (t Tree) ForEpic(repoRoot, epicKey string) []Record {
 
 func DuplicateBranchError(childBranch, parentBranch string) error {
 	return fmt.Errorf("branch already recorded: %s (parent: %s)", childBranch, parentBranch)
+}
+
+func corruptTreeError(path string, err error) error {
+	return fmt.Errorf(
+		"invalid tree.json at %s: %w; fix the JSON or remove the file to rebuild local branch records (run totonou config path to find the path)",
+		path,
+		err,
+	)
 }
 
 func (t Tree) FindChildBranch(repoRoot, childBranch string) (Record, bool) {

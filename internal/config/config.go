@@ -58,7 +58,9 @@ func Load() (Config, error) {
 	}
 
 	cfg := Default()
-	applyEnv(&cfg)
+	if err := applyEnv(&cfg); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 
@@ -157,7 +159,39 @@ func (c Config) ValidateDoneStatus() error {
 	return nil
 }
 
-func applyEnv(cfg *Config) {
+func (c Config) ValidateGitHub() error {
+	if c.GitHubRepo == "" {
+		return errors.New("missing GitHub config in .env: GITHUB_REPO")
+	}
+	return nil
+}
+
+func EnvTemplate() string {
+	return `BACKLOG_SPACE_URL=https://example.backlog.com
+BACKLOG_API_KEY=your-api-key
+BACKLOG_DONE_STATUS_ID=5
+GITHUB_REPO=owner/repo
+TOTONOU_DEFAULT_BASE=develop
+TOTONOU_PROJECT_KEY=COMMUNITY
+`
+}
+
+var ErrEnvFileExists = errors.New("env file already exists")
+
+func WriteEnvTemplate(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return ErrEnvFileExists
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(EnvTemplate()), 0o600)
+}
+
+func applyEnv(cfg *Config) error {
 	if value := os.Getenv("BACKLOG_SPACE_URL"); value != "" {
 		cfg.BacklogSpaceURL = value
 	}
@@ -165,9 +199,11 @@ func applyEnv(cfg *Config) {
 		cfg.BacklogAPIKey = value
 	}
 	if value := os.Getenv("BACKLOG_DONE_STATUS_ID"); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil {
-			cfg.BacklogDoneStatusID = parsed
+		parsed, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("invalid BACKLOG_DONE_STATUS_ID %q: must be an integer", value)
 		}
+		cfg.BacklogDoneStatusID = parsed
 	}
 	if value := os.Getenv("GITHUB_REPO"); value != "" {
 		cfg.GitHubRepo = value
@@ -181,4 +217,5 @@ func applyEnv(cfg *Config) {
 	if value := os.Getenv("TOTONOU_PROJECT_KEY"); value != "" {
 		cfg.ProjectKey = value
 	}
+	return nil
 }
